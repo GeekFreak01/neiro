@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Виджет донатов и подписок</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .widget-container {
+            background: rgba(0, 0, 0, 0.75);
+            border-radius: 20px;
+            padding: 25px 30px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 450px;
+            min-height: 120px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: all 0.5s ease;
+        }
+
+        .alert-item.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .alert-item.exit {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+
+        .alert-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alert-icon.donation {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .alert-icon.subscription {
+            background: linear-gradient(135deg, #9c27b0, #673ab7);
+            box-shadow: 0 4px 20px rgba(156, 39, 176, 0.4);
+        }
+
+        .alert-icon.follow {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            box-shadow: 0 4px 20px rgba(33, 150, 243, 0.4);
+        }
+
+        .alert-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+            z-index: 2;
+            position: relative;
+        }
+
+        .alert-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        }
+
+        .alert-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .alert-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .alert-subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .alert-amount {
+            font-size: 24px;
+            font-weight: 900;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .alert-amount.donation {
+            color: #4caf50;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        .alert-amount.subscription {
+            color: #9c27b0;
+            text-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
+        }
+
+        .alert-amount.follow {
+            color: #2196f3;
+            text-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+        }
+
+        .no-activity {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+            padding: 30px;
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            min-width: 300px;
+        }
+
+        .settings-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #4caf50;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .setting-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4caf50, #45a049);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #9c27b0, #673ab7);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(45deg, #2196f3, #1976d2);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .status {
+            font-size: 11px;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status.connected {
+            color: #4caf50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .status.error {
+            color: #f44336;
+            background: rgba(244, 67, 54, 0.2);
+        }
+
+        .test-controls {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div id="alertContainer">
+            <div class="no-activity">
+                Ожидание активности...
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-panel">
+        <h3 class="settings-title">Настройки API</h3>
+        
+        <div class="setting-group">
+            <div class="setting-label">DonationAlerts Token</div>
+            <input type="text" class="setting-input" id="daToken" placeholder="Введите токен DonationAlerts">
+        </div>
+        
+        <div class="setting-group">
+            <div class="setting-label">Twitch Client ID</div>
+            <input type="text" class="setting-input" id="twitchClientId" placeholder="Введите Client ID">
+        </div>
+        
+        <div class="setting-group">
+            <div class="setting-label">Twitch Access Token</div>
+            <input type="text" class="setting-input" id="twitchToken" placeholder="Введите Access Token">
+        </div>
+        
+        <div class="setting-group">
+            <div class="setting-label">Twitch Channel</div>
+            <input type="text" class="setting-input" id="twitchChannel" placeholder="Название канала">
+        </div>
+        
+        <button class="btn btn-primary" onclick="connectAPIs()">Подключить</button>
+        
+        <div class="test-controls">
+            <div class="setting-label">Тестирование</div>
+            <button class="btn btn-primary" onclick="testDonation()">Тест донат</button>
+            <button class="btn btn-secondary" onclick="testSubscription()">Тест подписка</button>
+            <button class="btn btn-info" onclick="testFollow()">Тест фолловер</button>
+        </div>
+        
+        <div id="connectionStatus" class="status">
+            Не подключено
+        </div>
+    </div>
+
+    <script>
+        class AlertWidget {
+            constructor() {
+                this.currentAlert = null;
+                this.alertQueue = [];
+                this.isConnected = false;
+                this.daSocket = null;
+                this.twitchEventSub = null;
+                
+                this.init();
+            }
+
+            init() {
+                this.loadSettings();
+                this.startDisplayLoop();
+            }
+
+            loadSettings() {
+                // Загружаем сохраненные настройки из localStorage
+                const settings = JSON.parse(localStorage.getItem('widgetSettings') || '{}');
+                
+                if (settings.daToken) document.getElementById('daToken').value = settings.daToken;
+                if (settings.twitchClientId) document.getElementById('twitchClientId').value = settings.twitchClientId;
+                if (settings.twitchToken) document.getElementById('twitchToken').value = settings.twitchToken;
+                if (settings.twitchChannel) document.getElementById('twitchChannel').value = settings.twitchChannel;
+            }
+
+            saveSettings() {
+                const settings = {
+                    daToken: document.getElementById('daToken').value,
+                    twitchClientId: document.getElementById('twitchClientId').value,
+                    twitchToken: document.getElementById('twitchToken').value,
+                    twitchChannel: document.getElementById('twitchChannel').value
+                };
+                localStorage.setItem('widgetSettings', JSON.stringify(settings));
+            }
+
+            async connectDonationAlerts() {
+                const token = document.getElementById('daToken').value;
+                if (!token) return false;
+
+                try {
+                    // WebSocket подключение к DonationAlerts
+                    this.daSocket = new WebSocket(`wss://socket.donationalerts.ru:443/socket.io/?token=${token}`);
+                    
+                    this.daSocket.onopen = () => {
+                        console.log('DonationAlerts подключен');
+                        this.updateStatus('DonationAlerts подключен', true);
+                    };
+
+                    this.daSocket.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.type === 'donation') {
+                                this.addDonation(data.username, data.amount, data.currency);
+                            }
+                        } catch (e) {
+                            console.error('Ошибка парсинга DA данных:', e);
+                        }
+                    };
+
+                    this.daSocket.onerror = () => {
+                        this.updateStatus('Ошибка подключения DonationAlerts', false);
+                    };
+
+                    return true;
+                } catch (error) {
+                    console.error('Ошибка подключения DonationAlerts:', error);
+                    return false;
+                }
+            }
+
+            async connectTwitch() {
+                const clientId = document.getElementById('twitchClientId').value;
+                const token = document.getElementById('twitchToken').value;
+                const channel = document.getElementById('twitchChannel').value;
+                
+                if (!clientId || !token || !channel) return false;
+
+                try {
+                    // Получаем ID пользователя
+                    const userResponse = await fetch(`https://api.twitch.tv/helix/users?login=${channel}`, {
+                        headers: {
+                            'Client-ID': clientId,
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!userResponse.ok) throw new Error('Не удалось получить данные пользователя');
+
+                    const userData = await userResponse.json();
+                    const userId = userData.data[0].id;
+
+                    // Здесь должна быть настройка EventSub подписок
+                    // Для демонстрации используем polling
+                    this.startTwitchPolling(clientId, token, userId);
+
+                    this.updateStatus('Twitch подключен', true);
+                    return true;
+                } catch (error) {
+                    console.error('Ошибка подключения Twitch:', error);
+                    this.updateStatus('Ошибка подключения Twitch', false);
+                    return false;
+                }
+            }
+
+            startTwitchPolling(clientId, token, userId) {
+                // Polling для получения новых подписчиков и фолловеров
+                // В реальном приложении следует использовать EventSub
+                setInterval(async () => {
+                    try {
+                        // Проверяем новых фолловеров
+                        const followResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}&first=1`, {
+                            headers: {
+                                'Client-ID': clientId,
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+
+                        // Проверяем подписки (требует дополнительные права)
+                        // const subResponse = await fetch(`https://api.twitch.tv/helix/subscriptions?broadcaster_id=${userId}&first=1`, {
+                        //     headers: {
+                        //         'Client-ID': clientId,
+                        //         'Authorization': `Bearer ${token}`
+                        //     }
+                        // });
+
+                    } catch (error) {
+                        console.error('Ошибка polling Twitch:', error);
+                    }
+                }, 30000); // Проверяем каждые 30 секунд
+            }
+
+            addDonation(username, amount, currency = 'RUB') {
+                const alert = {
+                    type: 'donation',
+                    username: username || 'Анонимный донатер',
+                    amount: `${amount} ${currency}`,
+                    timestamp: Date.now()
+                };
+                
+                this.alertQueue.push(alert);
+            }
+
+            addSubscription(username, months) {
+                const alert = {
+                    type: 'subscription',
+                    username: username,
+                    months: months,
+                    timestamp: Date.now()
+                };
+                
+                this.alertQueue.push(alert);
+            }
+
+            addFollow(username) {
+                const alert = {
+                    type: 'follow',
+                    username: username,
+                    timestamp: Date.now()
+                };
+                
+                this.alertQueue.push(alert);
+            }
+
+            displayAlert(alert) {
+                const container = document.getElementById('alertContainer');
+                
+                // Создаем элемент уведомления
+                const alertElement = document.createElement('div');
+                alertElement.className = 'alert-item';
+                
+                let iconSvg, title, subtitle, amount, amountClass;
+                
+                switch (alert.type) {
+                    case 'donation':
+                        iconSvg = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/></svg>`;
+                        title = alert.username;
+                        subtitle = 'Новый донат!';
+                        amount = alert.amount;
+                        amountClass = 'donation';
+                        break;
+
+                    case 'subscription':
+                        iconSvg = `<svg viewBox="0 0 24 24"><path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 3.5C14.8 3.4 14.6 3.3 14.4 3.3C14 3.3 13.6 3.5 13.5 3.9L12.5 7.8C12.3 8.8 12.8 9.8 13.8 10L16.8 10.9C17.1 11 17.4 11.2 17.6 11.5L21 15V13L18.4 10.4C18.2 10.2 17.9 10.1 17.6 10.1L14.7 9.2L15.5 5.3L21 9ZM7.5 4C8.3 4 9 4.7 9 5.5S8.3 7 7.5 7 6 6.3 6 5.5 6.7 4 7.5 4ZM3 7.5L7.5 5C7.8 4.9 8.1 4.9 8.4 5L12 7V9L8.4 7C8.1 6.9 7.8 6.9 7.5 7L3 9.5V7.5ZM12 12L8 10V12L12 14L16 12V10L12 12ZM12 16L8 14V18L12 20L16 18V14L12 16Z"/></svg>`;
+                        title = alert.username;
+                        subtitle = 'Новая подписка!';
+                        amount = `${alert.months} мес.`;
+                        amountClass = 'subscription';
+                        break;
+
+                    case 'follow':
+                        iconSvg = `<svg viewBox="0 0 24 24"><path d="M12 12C14.21 12 16 10.21 16 8S14.21 4 12 4 8 5.79 8 8 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z"/><path d="M18 8L22 12L18 16V13H15V11H18V8Z"/></svg>`;
+                        title = alert.username;
+                        subtitle = 'Новый фолловер!';
+                        amount = 'Подписался';
+                        amountClass = 'follow';
+                        break;
+                }
+                
+                alertElement.innerHTML = `
+                    <div class="alert-icon ${alert.type}">
+                        ${iconSvg}
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-title">${title}</div>
+                        <div class="alert-subtitle">${subtitle}</div>
+                    </div>
+                    <div class="alert-amount ${amountClass}">${amount}</div>
+                `;
+                
+                container.innerHTML = '';
+                container.appendChild(alertElement);
+                
+                // Анимация появления
+                setTimeout(() => {
+                    alertElement.classList.add('active');
+                }, 100);
+                
+                this.currentAlert = alert;
+            }
+
+            startDisplayLoop() {
+                setInterval(() => {
+                    if (this.alertQueue.length > 0) {
+                        const alert = this.alertQueue.shift();
+                        this.displayAlert(alert);
+                    }
+                }, 5000); // Показываем каждое уведомление 5 секунд
+            }
+
+            updateStatus(message, isConnected) {
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.textContent = message;
+                statusEl.className = `status ${isConnected ? 'connected' : 'error'}`;
+            }
+
+            async connect() {
+                this.saveSettings();
+                
+                const daConnected = await this.connectDonationAlerts();
+                const twitchConnected = await this.connectTwitch();
+                
+                if (daConnected || twitchConnected) {
+                    this.isConnected = true;
+                    this.updateStatus('API подключены успешно', true);
+                } else {
+                    this.updateStatus('Ошибка подключения к API', false);
+                }
+            }
+        }
+
+        // Инициализируем виджет
+        const widget = new AlertWidget();
+
+        // Функции для кнопок
+        function connectAPIs() {
+            widget.connect();
+        }
+
+        function testDonation() {
+            const names = ['ProGamer2024', 'StreamLover', 'NightOwl', 'CoffeeAddict', 'TechNinja'];
+            const name = names[Math.floor(Math.random() * names.length)];
+            const amount = Math.floor(Math.random() * 1000) + 100;
+            widget.addDonation(name, amount, 'RUB');
+        }
+
+        function testSubscription() {
+            const names = ['SubMaster', 'StreamFan', 'GameMaster', 'CoolDude_21', 'MusicLover'];
+            const name = names[Math.floor(Math.random() * names.length)];
+            const months = Math.floor(Math.random() * 12) + 1;
+            widget.addSubscription(name, months);
+        }
+
+        function testFollow() {
+            const names = ['NewViewer2024', 'ArtisticSoul', 'CodeWarrior', 'StreamNewbie', 'GameExplorer'];
+            const name = names[Math.floor(Math.random() * names.length)];
+            widget.addFollow(name);
+        }
+
+        // Горячие клавиши для тестирования
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'd' || e.key === 'в') {
+                testDonation();
+            } else if (e.key === 's' || e.key === 'ы') {
+                testSubscription();
+            } else if (e.key === 'f' || e.key === 'а') {
+                testFollow();
+            }
+        });
+    </script>
+</body>
+</html>
