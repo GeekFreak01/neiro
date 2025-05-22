@@ -1,0 +1,18 @@
+{
+  "name": "obs-donation-sub-widget",
+  "version": "1.0.0",
+  "description": "OBS widget for donations and subscriptions",
+  "scripts": {
+    "dev": "echo 'Open index.html in browser'",
+    "build": "echo 'No build required'"
+  },
+  "keywords": [
+    "obs",
+    "twitch",
+    "donationalerts",
+    "widget",
+    "streaming"
+  ],
+  "author": "",
+  "license": "MIT"
+}
