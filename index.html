@@ -323,6 +323,7 @@
 
             init() {
                 this.loadSettings();
+                this.extractTokenFromURL();
                 this.startDisplayLoop();
             }
 
@@ -334,6 +335,33 @@
                 if (settings.twitchClientId) document.getElementById('twitchClientId').value = settings.twitchClientId;
                 if (settings.twitchToken) document.getElementById('twitchToken').value = settings.twitchToken;
                 if (settings.twitchChannel) document.getElementById('twitchChannel').value = settings.twitchChannel;
+            }
+
+            extractTokenFromURL() {
+                // Извлекаем токен из URL если есть (после OAuth редиректа)
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash);
+                
+                const accessToken = params.get('access_token');
+                const tokenType = params.get('token_type');
+                const scope = params.get('scope');
+                
+                if (accessToken) {
+                    document.getElementById('twitchToken').value = accessToken;
+                    console.log('Twitch токен автоматически извлечен из URL');
+                    console.log('Права токена:', scope);
+                    
+                    // Сохраняем настройки
+                    this.saveSettings();
+                    
+                    // Очищаем URL от токена для безопасности
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                    
+                    // Показываем уведомление
+                    this.updateStatus('Twitch токен получен! Введите Client ID и канал, затем нажмите "Подключить"', true);
+                }
             }
 
             saveSettings() {
@@ -351,32 +379,68 @@
                 if (!token) return false;
 
                 try {
-                    // WebSocket подключение к DonationAlerts
-                    this.daSocket = new WebSocket(`wss://socket.donationalerts.ru:443/socket.io/?token=${token}`);
+                    // Сначала получаем информацию о пользователе для проверки токена
+                    const userResponse = await fetch('https://www.donationalerts.com/api/v1/user/oauth', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!userResponse.ok) {
+                        throw new Error(`Неверный токен DonationAlerts: ${userResponse.status}`);
+                    }
+
+                    const userData = await userResponse.json();
+                    console.log('DonationAlerts пользователь:', userData.data.name);
+
+                    // Подключаемся к WebSocket через Socket.IO
+                    // DonationAlerts использует Socket.IO, поэтому правильный URL:
+                    this.daSocket = new WebSocket(`wss://socket.donationalerts.ru/socket.io/?token=${token}&EIO=4&transport=websocket`);
                     
                     this.daSocket.onopen = () => {
-                        console.log('DonationAlerts подключен');
-                        this.updateStatus('DonationAlerts подключен', true);
+                        console.log('DonationAlerts WebSocket подключен');
+                        this.updateStatus(`DonationAlerts подключен (${userData.data.name})`, true);
                     };
 
                     this.daSocket.onmessage = (event) => {
                         try {
-                            const data = JSON.parse(event.data);
-                            if (data.type === 'donation') {
-                                this.addDonation(data.username, data.amount, data.currency);
+                            console.log('DA сообщение:', event.data);
+                            
+                            // Socket.IO использует специальный формат сообщений
+                            const message = event.data;
+                            if (message.startsWith('42')) {
+                                const jsonStr = message.substring(2);
+                                const data = JSON.parse(jsonStr);
+                                
+                                if (data[0] === 'donation') {
+                                    const donation = data[1];
+                                    this.addDonation(
+                                        donation.username || donation.donor_name || 'Анонимный донатер',
+                                        donation.amount,
+                                        donation.currency
+                                    );
+                                }
                             }
                         } catch (e) {
                             console.error('Ошибка парсинга DA данных:', e);
                         }
                     };
 
-                    this.daSocket.onerror = () => {
+                    this.daSocket.onerror = (error) => {
+                        console.error('DA WebSocket ошибка:', error);
                         this.updateStatus('Ошибка подключения DonationAlerts', false);
+                    };
+
+                    this.daSocket.onclose = () => {
+                        console.log('DA WebSocket закрыт');
+                        this.updateStatus('DonationAlerts отключен', false);
                     };
 
                     return true;
                 } catch (error) {
                     console.error('Ошибка подключения DonationAlerts:', error);
+                    this.updateStatus(`Ошибка DA: ${error.message}`, false);
                     return false;
                 }
             }
@@ -386,7 +450,10 @@
                 const token = document.getElementById('twitchToken').value;
                 const channel = document.getElementById('twitchChannel').value;
                 
-                if (!clientId || !token || !channel) return false;
+                if (!clientId || !token || !channel) {
+                    this.updateStatus('Заполните все поля Twitch', false);
+                    return false;
+                }
 
                 try {
                     // Получаем ID пользователя
@@ -397,49 +464,113 @@
                         }
                     });
 
-                    if (!userResponse.ok) throw new Error('Не удалось получить данные пользователя');
+                    if (!userResponse.ok) {
+                        throw new Error(`Ошибка получения данных пользователя: ${userResponse.status}`);
+                    }
 
                     const userData = await userResponse.json();
-                    const userId = userData.data[0].id;
+                    
+                    if (!userData.data || userData.data.length === 0) {
+                        throw new Error(`Пользователь '${channel}' не найден`);
+                    }
 
-                    // Здесь должна быть настройка EventSub подписок
-                    // Для демонстрации используем polling
+                    const userId = userData.data[0].id;
+                    const userName = userData.data[0].display_name;
+
+                    console.log(`Twitch пользователь найден: ${userName} (ID: ${userId})`);
+
+                    // Проверяем права токена
+                    const tokenResponse = await fetch('https://id.twitch.tv/oauth2/validate', {
+                        headers: {
+                            'Authorization': `OAuth ${token}`
+                        }
+                    });
+
+                    if (!tokenResponse.ok) {
+                        throw new Error('Неверный токен Twitch');
+                    }
+
+                    const tokenData = await tokenResponse.json();
+                    console.log('Twitch токен валиден, права:', tokenData.scopes);
+
+                    // Запускаем периодическую проверку фолловеров
                     this.startTwitchPolling(clientId, token, userId);
 
-                    this.updateStatus('Twitch подключен', true);
+                    this.updateStatus(`Twitch подключен (${userName})`, true);
                     return true;
                 } catch (error) {
                     console.error('Ошибка подключения Twitch:', error);
-                    this.updateStatus('Ошибка подключения Twitch', false);
+                    this.updateStatus(`Ошибка Twitch: ${error.message}`, false);
                     return false;
                 }
             }
 
             startTwitchPolling(clientId, token, userId) {
+                let lastFollowerId = null;
+                
+                // Получаем последнего фолловера для начальной точки
+                fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=1`, {
+                    headers: {
+                        'Client-ID': clientId,
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.data && data.data.length > 0) {
+                        lastFollowerId = data.data[0].user_id;
+                        console.log('Начальная точка для фолловеров установлена');
+                    }
+                })
+                .catch(error => console.error('Ошибка получения начальной точки фолловеров:', error));
+
                 // Polling для получения новых подписчиков и фолловеров
-                // В реальном приложении следует использовать EventSub
-                setInterval(async () => {
+                const pollInterval = setInterval(async () => {
                     try {
                         // Проверяем новых фолловеров
-                        const followResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}&first=1`, {
+                        const followResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=5`, {
                             headers: {
                                 'Client-ID': clientId,
                                 'Authorization': `Bearer ${token}`
                             }
                         });
 
-                        // Проверяем подписки (требует дополнительные права)
-                        // const subResponse = await fetch(`https://api.twitch.tv/helix/subscriptions?broadcaster_id=${userId}&first=1`, {
-                        //     headers: {
-                        //         'Client-ID': clientId,
-                        //         'Authorization': `Bearer ${token}`
-                        //     }
-                        // });
+                        if (followResponse.ok) {
+                            const followData = await followResponse.json();
+                            if (followData.data && followData.data.length > 0) {
+                                // Проверяем новых фолловеров
+                                for (const follower of followData.data) {
+                                    if (lastFollowerId && follower.user_id !== lastFollowerId) {
+                                        this.addFollow(follower.user_name);
+                                        break; // Добавляем только одного нового за раз
+                                    }
+                                }
+                                // Обновляем последнего фолловера
+                                lastFollowerId = followData.data[0].user_id;
+                            }
+                        }
+
+                        // Проверяем подписки (требует channel:read:subscriptions права)
+                        const subResponse = await fetch(`https://api.twitch.tv/helix/subscriptions?broadcaster_id=${userId}&first=5`, {
+                            headers: {
+                                'Client-ID': clientId,
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+
+                        if (subResponse.ok) {
+                            const subData = await subResponse.json();
+                            // Здесь можно обработать подписки, но для этого нужны специальные права
+                            console.log('Подписки получены:', subData);
+                        }
 
                     } catch (error) {
                         console.error('Ошибка polling Twitch:', error);
                     }
                 }, 30000); // Проверяем каждые 30 секунд
+
+                // Сохраняем интервал для возможной очистки
+                this.twitchPollingInterval = pollInterval;
             }
 
             addDonation(username, amount, currency = 'RUB') {
