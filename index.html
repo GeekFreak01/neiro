@@ -295,6 +295,8 @@
                 this.lastDonationId = null;
                 this.refreshInterval = null;
                 this.checkInterval = null;
+                this.processedDonations = new Set(); // Храним ID уже показанных донатов
+                this.lastCheckTime = new Date();
                 
                 this.initFromUrl();
                 this.bindEvents();
@@ -443,14 +445,23 @@
             }
 
             async fetchFromAPI() {
+                // Получаем дату неделю назад
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const fromDate = weekAgo.toISOString().split('T')[0]; // YYYY-MM-DD формат
+                
+                console.log('Fetching donations from:', fromDate);
+
                 const endpoints = [
-                    'https://www.donationalerts.com/api/v1/alerts/donations',
-                    'https://www.donationalerts.com/api/v1/user/oauth',
-                    'https://cors-anywhere.herokuapp.com/https://www.donationalerts.com/api/v1/alerts/donations'
+                    `https://www.donationalerts.com/api/v1/alerts/donations?page=1&limit=50&from=${fromDate}`,
+                    'https://www.donationalerts.com/api/v1/alerts/donations?page=1&limit=50',
+                    `https://cors-anywhere.herokuapp.com/https://www.donationalerts.com/api/v1/alerts/donations?page=1&limit=50&from=${fromDate}`
                 ];
 
                 for (const endpoint of endpoints) {
                     try {
+                        console.log('Trying endpoint:', endpoint);
+                        
                         const response = await fetch(endpoint, {
                             headers: {
                                 'Authorization': `Bearer ${this.accessToken}`,
@@ -459,7 +470,10 @@
                             }
                         });
 
+                        console.log('Response status:', response.status);
+
                         if (response.status === 401) {
+                            console.log('Token expired, refreshing...');
                             if (await this.refreshAccessToken()) {
                                 continue;
                             }
@@ -468,7 +482,21 @@
                         if (response.ok) {
                             const data = await response.json();
                             console.log('API Response:', data);
-                            return data.data || data || [];
+                            
+                            // Фильтруем донаты за последнюю неделю
+                            let donations = data.data || data || [];
+                            
+                            if (Array.isArray(donations)) {
+                                donations = donations.filter(donation => {
+                                    const donationDate = new Date(donation.created_at || donation.date);
+                                    return donationDate >= weekAgo;
+                                });
+                                
+                                console.log(`Filtered ${donations.length} donations from last week`);
+                                return donations;
+                            }
+                            
+                            return [];
                         }
                     } catch (error) {
                         console.log(`Failed endpoint ${endpoint}:`, error.message);
@@ -490,40 +518,37 @@
 
             async testWithMockData() {
                 if (window.location.search.includes('test=true')) {
-                    return [{
-                        id: Date.now(),
-                        username: 'Тестовый донатер',
-                        amount: '100',
-                        currency: 'RUB',
-                        message: 'Тестовое сообщение',
-                        created_at: new Date().toISOString()
-                    }];
+                    // Создаем несколько тестовых донатов за последнюю неделю
+                    const testDonations = [];
+                    const now = new Date();
+                    
+                    for (let i = 0; i < 5; i++) {
+                        const donationDate = new Date(now);
+                        donationDate.setHours(now.getHours() - i * 2); // Каждые 2 часа назад
+                        
+                        testDonations.push({
+                            id: `test_${Date.now()}_${i}`,
+                            username: `Тестер${i + 1}`,
+                            amount: (100 * (i + 1)).toString(),
+                            currency: i % 2 === 0 ? 'RUB' : 'USD',
+                            message: `Тестовое сообщение ${i + 1}`,
+                            created_at: donationDate.toISOString()
+                        });
+                    }
+                    
+                    console.log('Generated test donations:', testDonations);
+                    return testDonations;
                 }
                 return [];
             }
 
             startTestMode() {
-                this.updateStatus('🧪 Тестовый режим', 'connected');
+                this.updateStatus('🧪 Тестовый режим - неделя донатов', 'connected');
                 
+                // Имитируем загрузку донатов за неделю
                 setTimeout(() => {
-                    const testDonation = {
-                        id: Date.now(),
-                        username: 'Тестовый Донатер',
-                        amount: '500',
-                        currency: 'RUB'
-                    };
-                    this.showDonation(testDonation);
-                }, 2000);
-                
-                setTimeout(() => {
-                    const testDonation2 = {
-                        id: Date.now() + 1,
-                        username: 'Второй Тест',
-                        amount: '1000',
-                        currency: 'USD'
-                    };
-                    this.showDonation(testDonation2);
-                }, 8000);
+                    this.checkForNewDonations();
+                }, 1000);
             }
 
             async checkForNewDonations() {
@@ -533,24 +558,61 @@
                 console.log('Received donations:', donations);
                 
                 if (donations && donations.length > 0) {
-                    const latestDonation = donations[0];
-                    
-                    console.log('Latest donation:', latestDonation);
-                    console.log('Last donation ID:', this.lastDonationId);
-                    
-                    if (this.lastDonationId !== latestDonation.id) {
-                        this.lastDonationId = latestDonation.id;
-                        this.showDonation(latestDonation);
-                        this.updateStatus('✅ Новый донат получен!', 'connected');
+                    // Сортируем донаты по дате (новые сначала)
+                    const sortedDonations = donations.sort((a, b) => {
+                        const dateA = new Date(a.created_at || a.date);
+                        const dateB = new Date(b.created_at || b.date);
+                        return dateB - dateA;
+                    });
+
+                    let newDonationsFound = 0;
+
+                    // Проверяем каждый донат
+                    for (const donation of sortedDonations) {
+                        const donationId = donation.id || donation._id || `${donation.username}_${donation.amount}_${donation.created_at}`;
                         
+                        // Если этот донат еще не показывали
+                        if (!this.processedDonations.has(donationId)) {
+                            console.log('New donation found:', donation);
+                            
+                            // Добавляем в список показанных
+                            this.processedDonations.add(donationId);
+                            
+                            // Показываем донат с задержкой между донатами
+                            setTimeout(() => {
+                                this.showDonation(donation);
+                            }, newDonationsFound * 1000); // 1 секунда между донатами
+                            
+                            newDonationsFound++;
+                            
+                            // Ограничиваем количество одновременно показываемых донатов
+                            if (newDonationsFound >= 5) break;
+                        }
+                    }
+
+                    if (newDonationsFound > 0) {
+                        this.updateStatus(`✅ Показано ${newDonationsFound} новых донатов!`, 'connected');
                         setTimeout(() => {
                             this.updateStatus('✅ Подключено', 'connected');
                         }, 3000);
                     } else {
                         this.updateStatus('✅ Подключено', 'connected');
                     }
+
+                    // Очищаем старые записи (старше недели)
+                    this.cleanupProcessedDonations();
                 } else {
                     this.updateStatus('⏳ Ожидание донатов...', '');
+                }
+            }
+
+            cleanupProcessedDonations() {
+                // Ограничиваем размер Set, чтобы не занимать много памяти
+                if (this.processedDonations.size > 1000) {
+                    const array = Array.from(this.processedDonations);
+                    this.processedDonations.clear();
+                    // Оставляем только последние 500 записей
+                    array.slice(-500).forEach(id => this.processedDonations.add(id));
                 }
             }
 
