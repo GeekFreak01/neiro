@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DonationAlerts Widget</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
         }
 
         body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
             background: transparent;
             overflow: hidden;
         }
@@ -36,7 +36,7 @@
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 30px;
-            max-width: 400px;
+            max-width: 500px;
             width: 90%;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -46,6 +46,7 @@
             text-align: center;
             margin-bottom: 20px;
             font-size: 24px;
+            font-weight: 700;
         }
 
         .form-group {
@@ -68,6 +69,7 @@
             color: white;
             font-size: 16px;
             border: 1px solid rgba(255, 255, 255, 0.3);
+            font-family: 'Inter', sans-serif;
         }
 
         .form-group input::placeholder {
@@ -91,12 +93,18 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            margin-bottom: 10px;
+            font-family: 'Inter', sans-serif;
         }
 
         .btn:hover {
             background: linear-gradient(45deg, #45a049, #4CAF50);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .test-btn {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
         }
 
         .widget-container {
@@ -108,60 +116,37 @@
         }
 
         .donation-widget {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px 25px;
+            width: 320px;
+            height: 50px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 4px 4px 0 rgba(68, 0, 102, 0.8);
             display: flex;
             align-items: center;
-            gap: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            min-width: 200px;
-            max-width: 600px;
-            visibility: hidden;
-        }
-
-        .donation-widget.show {
+            justify-content: center;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
             opacity: 1;
             visibility: visible;
         }
 
-        .donation-widget.hide {
-            opacity: 0;
-        }
-
-        .money-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            border-radius: 12px;
+        .item {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-            flex-shrink: 0;
-            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
-        }
-
-        .donation-info {
-            color: white;
-            font-size: 18px;
-            font-weight: 600;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            font-size: 14px;
             white-space: nowrap;
-            transition: all 0.3s ease;
+            transition: opacity 0.5s ease;
         }
 
-        .donor-name {
-            color: #4CAF50;
+        .icon {
+            margin-right: 8px;
+            font-size: 20px;
+            color: #440066;
         }
 
-        .amount {
-            color: #FFD700;
+        .text {
+            color: #000;
         }
 
         .status {
@@ -174,6 +159,7 @@
             border-radius: 10px;
             font-size: 14px;
             z-index: 100;
+            font-family: 'Inter', sans-serif;
         }
 
         .status.connected {
@@ -195,6 +181,7 @@
         .url-result h3 {
             color: #4CAF50;
             margin-bottom: 10px;
+            font-weight: 600;
         }
 
         .url-result p {
@@ -215,53 +202,84 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 12px;
+            font-family: 'Inter', sans-serif;
         }
 
         .copy-btn:hover {
             background: rgba(76, 175, 80, 0.3);
         }
 
-        .test-btn {
-            background: linear-gradient(45deg, #FF9800, #F57C00);
-            margin-top: 10px;
+        .info-block {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-block h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .info-block p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            10%, 90% { opacity: 1; }
+        }
+
+        .animate-fade-in-out {
+            animation: fadeInOut 4s ease infinite;
         }
     </style>
 </head>
 <body>
     <div id="setupContainer" class="setup-container">
         <div class="setup-form">
-            <h2>🎁 Настройка виджета донатов</h2>
-            <form id="setupForm">
-                <div class="form-group">
-                    <label for="accessToken">Access Token:</label>
-                    <input type="text" id="accessToken" placeholder="Введите ваш access token" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="refreshToken">Refresh Token:</label>
-                    <input type="text" id="refreshToken" placeholder="Введите ваш refresh token" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="position">Позиция виджета:</label>
-                    <select id="position">
-                        <option value="center">По центру</option>
-                        <option value="top-left">Верх слева</option>
-                        <option value="top-right">Верх справа</option>
-                        <option value="bottom-left">Низ слева</option>
-                        <option value="bottom-right">Низ справа</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="duration">Время показа (секунды):</label>
-                    <input type="number" id="duration" value="5" min="1" max="30">
-                </div>
-                
-                <button type="submit" class="btn">🚀 Запустить виджет</button>
-                <button type="button" class="btn test-btn" id="testBtn">🧪 Тест виджета</button>
-                <button type="button" class="btn test-btn" id="directTestBtn" style="background: linear-gradient(45deg, #9C27B0, #673AB7);">🔗 Прямой тест</button>
-            </form>
+            <h2>💰 Виджет донатов DonationAlerts</h2>
+            
+            <div class="info-block">
+                <h4>📋 Требуется прокси-сервер</h4>
+                <p>DonationAlerts API блокирует запросы из браузера. Нужен простой прокси-сервер или используйте готовое решение:</p>
+                <p><strong>1.</strong> Создайте файл proxy-server.js<br>
+                <strong>2.</strong> Запустите: node proxy-server.js<br>
+                <strong>3.</strong> Укажите URL прокси ниже</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="proxyUrl">URL прокси-сервера:</label>
+                <input type="text" id="proxyUrl" value="http://localhost:3001" placeholder="http://localhost:3001">
+            </div>
+            
+            <div class="form-group">
+                <label for="accessToken">DonationAlerts Access Token:</label>
+                <input type="text" id="accessToken" placeholder="Введите ваш access token">
+            </div>
+            
+            <div class="form-group">
+                <label for="position">Позиция виджета:</label>
+                <select id="position">
+                    <option value="center">По центру</option>
+                    <option value="top-left">Верх слева</option>
+                    <option value="top-right">Верх справа</option>
+                    <option value="bottom-left">Низ слева</option>
+                    <option value="bottom-right">Низ справа</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">Время показа каждого элемента (секунды):</label>
+                <input type="number" id="duration" value="4" min="1" max="10">
+            </div>
+            
+            <button type="button" class="btn" id="startBtn">🚀 Запустить виджет</button>
+            <button type="button" class="btn test-btn" id="testBtn">🧪 Тест анимации</button>
             
             <div id="urlResult" class="url-result" style="display: none;">
                 <h3>✅ Ссылка для OBS готова!</h3>
@@ -277,11 +295,10 @@
     <div class="status" id="status">⚡ Настройка виджета</div>
 
     <div class="widget-container">
-        <div class="donation-widget show" id="donationWidget">
-            <div class="money-icon">💰</div>
-            <div class="donation-info">
-                <span class="donor-name">Ожидание донатов...</span>
-                <span class="amount" style="display: none;"></span>
+        <div class="donation-widget" id="donationWidget">
+            <div class="item" id="currentItem">
+                <div class="icon">💰</div>
+                <div class="text">Загрузка донатов...</div>
             </div>
         </div>
     </div>
@@ -289,113 +306,79 @@
     <script>
         class DonationWidget {
             constructor() {
+                this.proxyUrl = 'http://localhost:3001';
                 this.accessToken = '';
-                this.refreshToken = '';
                 this.position = 'center';
-                this.duration = 5000;
+                this.duration = 4000;
                 this.isSetup = false;
-                this.lastDonationId = null;
-                this.refreshInterval = null;
+                this.items = [];
+                this.currentIndex = 0;
+                this.intervalId = null;
                 this.checkInterval = null;
-                this.processedDonations = new Set(); // Храним ID уже показанных донатов
-                this.lastCheckTime = new Date();
                 
                 this.initFromUrl();
                 this.bindEvents();
+                
+                window.widget = this;
             }
 
             initFromUrl() {
-                console.log('Full URL:', window.location.href);
-                console.log('Search params:', window.location.search);
+                console.log('🔗 Checking URL parameters...');
                 
                 const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                const refresh = urlParams.get('refresh');
-                const pos = urlParams.get('position');
-                const dur = urlParams.get('duration');
-                const isTest = urlParams.get('test');
+                const proxyUrl = urlParams.get('proxy_url');
+                const accessToken = urlParams.get('access_token');
+                const position = urlParams.get('position') || 'center';
+                const duration = urlParams.get('duration') || '4';
+                const isTest = urlParams.get('test') === 'true';
 
-                console.log('URL Params:', {
-                    token: token ? (token.length > 15 ? token.substring(0, 15) + '...' : token) : null,
-                    refresh: refresh ? (refresh.length > 15 ? refresh.substring(0, 15) + '...' : refresh) : null,
-                    position: pos,
-                    duration: dur,
-                    test: isTest
-                });
-
-                // Проверяем все возможные параметры в URL
-                const allParams = {};
-                for (const [key, value] of urlParams.entries()) {
-                    allParams[key] = value;
-                }
-                console.log('All URL parameters:', allParams);
-
-                if (token && refresh && token !== 'test') {
-                    this.accessToken = token;
-                    this.refreshToken = refresh;
-                    this.position = pos || 'center';
-                    this.duration = parseInt(dur) * 1000 || 5000;
+                if (isTest) {
+                    console.log('🧪 Test mode activated');
                     this.isSetup = true;
-                    
-                    console.log('✅ Widget mode: Real API');
-                    console.log('✅ Position:', this.position);
-                    console.log('✅ Duration:', this.duration / 1000, 'seconds');
-                    
-                    document.getElementById('setupContainer').style.display = 'none';
-                    this.setupWidget();
-                    this.startChecking();
-                } else if (isTest === 'true') {
-                    this.isSetup = true;
-                    this.position = pos || 'center';
-                    this.duration = parseInt(dur) * 1000 || 5000;
-                    
-                    console.log('🧪 Widget mode: Test mode');
-                    console.log('✅ Position:', this.position);
-                    console.log('✅ Duration:', this.duration / 1000, 'seconds');
+                    this.position = position;
+                    this.duration = parseInt(duration) * 1000;
                     
                     document.getElementById('setupContainer').style.display = 'none';
                     this.setupWidget();
                     this.startTestMode();
+                    return;
+                }
+
+                if (proxyUrl && accessToken) {
+                    this.proxyUrl = proxyUrl;
+                    this.accessToken = accessToken;
+                    this.position = position;
+                    this.duration = parseInt(duration) * 1000;
+                    this.isSetup = true;
+                    
+                    console.log('✅ Widget configured via URL');
+                    
+                    document.getElementById('setupContainer').style.display = 'none';
+                    this.setupWidget();
+                    this.startDataFetching();
                 } else {
-                    console.log('⚙️ Widget mode: Setup required');
-                    console.log('Reason: token=' + (token || 'null') + ', refresh=' + (refresh || 'null') + ', test=' + (isTest || 'null'));
+                    console.log('⚙️ Setup required');
                 }
             }
 
             bindEvents() {
-                document.getElementById('setupForm').addEventListener('submit', (e) => {
-                    e.preventDefault();
+                document.getElementById('startBtn').addEventListener('click', () => {
                     this.handleSetup();
                 });
                 
                 document.getElementById('testBtn').addEventListener('click', () => {
-                    this.testWidget();
-                });
-                
-                document.getElementById('directTestBtn').addEventListener('click', () => {
-                    this.directTest();
+                    this.runTest();
                 });
             }
 
             handleSetup() {
+                this.proxyUrl = document.getElementById('proxyUrl').value.trim();
                 this.accessToken = document.getElementById('accessToken').value.trim();
-                this.refreshToken = document.getElementById('refreshToken').value.trim();
                 this.position = document.getElementById('position').value;
                 this.duration = parseInt(document.getElementById('duration').value) * 1000;
 
-                console.log('Setup form data:');
-                console.log('- Access token length:', this.accessToken ? this.accessToken.length : 0);
-                console.log('- Refresh token length:', this.refreshToken ? this.refreshToken.length : 0);
-                console.log('- Position:', this.position);
-                console.log('- Duration:', this.duration / 1000, 'seconds');
-
-                if (!this.accessToken || !this.refreshToken) {
+                if (!this.proxyUrl || !this.accessToken) {
                     alert('Пожалуйста, заполните все поля!');
-                    return;
-                }
-
-                if (this.accessToken.length < 10 || this.refreshToken.length < 10) {
-                    alert('Токены кажутся слишком короткими. Проверьте правильность!');
                     return;
                 }
 
@@ -403,41 +386,19 @@
                 document.getElementById('widgetUrl').textContent = widgetUrl;
                 document.getElementById('urlResult').style.display = 'block';
                 
-                console.log('Widget URL generated successfully!');
-                console.log('Testing URL parsing...');
-                
-                // Тестируем парсинг URL
-                const testParams = new URLSearchParams(widgetUrl.split('?')[1]);
-                console.log('URL Test - parsed params:', {
-                    token: testParams.get('token') ? 'present' : 'missing',
-                    refresh: testParams.get('refresh') ? 'present' : 'missing',
-                    position: testParams.get('position'),
-                    duration: testParams.get('duration')
-                });
+                console.log('✅ Widget URL generated');
             }
 
             generateWidgetUrl() {
                 const baseUrl = window.location.href.split('?')[0];
                 const params = new URLSearchParams();
                 
-                params.set('token', this.accessToken);
-                params.set('refresh', this.refreshToken);
+                params.set('proxy_url', this.proxyUrl);
+                params.set('access_token', this.accessToken);
                 params.set('position', this.position);
                 params.set('duration', Math.floor(this.duration / 1000));
                 
-                const finalUrl = baseUrl + '?' + params.toString();
-                
-                console.log('URL Generation:');
-                console.log('- Base URL:', baseUrl);
-                console.log('- Parameters:', {
-                    token: this.accessToken ? this.accessToken.substring(0, 15) + '...' : 'empty',
-                    refresh: this.refreshToken ? this.refreshToken.substring(0, 15) + '...' : 'empty',
-                    position: this.position,
-                    duration: Math.floor(this.duration / 1000)
-                });
-                console.log('- Final URL length:', finalUrl.length);
-                
-                return finalUrl;
+                return baseUrl + '?' + params.toString();
             }
 
             setupWidget() {
@@ -453,386 +414,138 @@
                 Object.assign(widget.style, positions[this.position]);
             }
 
-            async refreshAccessToken() {
-                try {
-                    const response = await fetch('https://www.donationalerts.com/oauth/token', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            grant_type: 'refresh_token',
-                            refresh_token: this.refreshToken,
-                            client_id: 'your_client_id',
-                            client_secret: 'your_client_secret'
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.accessToken = data.access_token;
-                        this.refreshToken = data.refresh_token;
-                        return true;
-                    }
-                } catch (error) {
-                    console.error('Error refreshing token:', error);
-                }
-                return false;
+            async startDataFetching() {
+                console.log('🔄 Starting data fetching...');
+                this.updateStatus('🔄 Загрузка данных...', '');
+                
+                await this.fetchDonations();
+                
+                // Проверяем новые донаты каждые 30 секунд
+                this.checkInterval = setInterval(() => {
+                    this.fetchDonations();
+                }, 30000);
             }
 
             async fetchDonations() {
                 try {
-                    const methods = [
-                        () => this.fetchFromAPI(),
-                        () => this.fetchFromSocket(),
-                        () => this.testWithMockData()
-                    ];
+                    console.log('📡 Fetching donations from proxy...');
+                    
+                    const response = await fetch(`${this.proxyUrl}/api/donations`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            access_token: this.accessToken
+                        })
+                    });
 
-                    for (const method of methods) {
-                        try {
-                            const result = await method();
-                            if (result && result.length > 0) {
-                                return result;
-                            }
-                        } catch (error) {
-                            console.log('Method failed, trying next...', error.message);
-                        }
+                    if (!response.ok) {
+                        throw new Error(`Proxy error: ${response.status}`);
                     }
 
-                    return [];
+                    const data = await response.json();
+                    console.log('📦 Received data:', data);
+                    
+                    this.processItems(data.items || []);
+                    
                 } catch (error) {
-                    console.error('All methods failed:', error);
-                    this.updateStatus('❌ Ошибка соединения', 'error');
-                    return [];
-                }
-            }
-
-            async fetchFromAPI() {
-                // Пробуем разные варианты API
-                const now = new Date();
-                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                
-                const endpoints = [
-                    // Основной endpoint с лимитом
-                    'https://www.donationalerts.com/api/v1/alerts/donations?limit=20',
-                    // С пагинацией  
-                    'https://www.donationalerts.com/api/v1/alerts/donations?page=1&limit=20',
-                    // Пробуем получить пользователя (для проверки токена)
-                    'https://www.donationalerts.com/api/v1/user/oauth',
-                    // Через CORS proxy
-                    'https://cors-anywhere.herokuapp.com/https://www.donationalerts.com/api/v1/alerts/donations?limit=20'
-                ];
-
-                for (let i = 0; i < endpoints.length; i++) {
-                    const endpoint = endpoints[i];
-                    try {
-                        console.log(`Trying endpoint ${i + 1}/${endpoints.length}:`, endpoint);
-                        
-                        const response = await fetch(endpoint, {
-                            method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${this.accessToken}`,
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            }
-                        });
-
-                        console.log(`Response status: ${response.status}`);
-
-                        if (response.status === 401) {
-                            console.log('Token expired, trying to refresh...');
-                            if (await this.refreshAccessToken()) {
-                                // Повторяем запрос с новым токеном
-                                continue;
-                            } else {
-                                console.log('Failed to refresh token');
-                                continue;
-                            }
-                        }
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            console.log('API Response data:', data);
-                            
-                            // Обрабатываем разные форматы ответа
-                            let donations = [];
-                            
-                            if (data.data && Array.isArray(data.data)) {
-                                donations = data.data;
-                            } else if (Array.isArray(data)) {
-                                donations = data;
-                            } else if (data.donations && Array.isArray(data.donations)) {
-                                donations = data.donations;
-                            }
-                            
-                            // Фильтруем донаты за последнюю неделю
-                            if (donations.length > 0) {
-                                const filteredDonations = donations.filter(donation => {
-                                    if (!donation.created_at && !donation.date) return true; // Если нет даты, показываем
-                                    
-                                    const donationDate = new Date(donation.created_at || donation.date);
-                                    return donationDate >= weekAgo;
-                                });
-                                
-                                console.log(`Found ${donations.length} total donations, ${filteredDonations.length} from last week`);
-                                return filteredDonations;
-                            }
-                            
-                            return [];
-                        } else {
-                            console.log(`Endpoint failed with status: ${response.status}`);
-                            const errorText = await response.text();
-                            console.log('Error response:', errorText);
-                        }
-                    } catch (error) {
-                        console.log(`Endpoint ${endpoint} failed:`, error.message);
-                        continue;
-                    }
-                }
-                
-                throw new Error('All API endpoints failed');
-            }
-
-            async fetchFromSocket() {
-                return new Promise((resolve, reject) => {
-                    try {
-                        setTimeout(() => resolve([]), 1000);
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            }
-
-            async testWithMockData() {
-                if (window.location.search.includes('test=true')) {
-                    // Создаем несколько тестовых донатов за последнюю неделю
-                    const testDonations = [];
-                    const now = new Date();
+                    console.error('❌ Fetch error:', error);
+                    this.updateStatus('❌ Ошибка загрузки', 'error');
                     
-                    for (let i = 0; i < 5; i++) {
-                        const donationDate = new Date(now);
-                        donationDate.setHours(now.getHours() - i * 2); // Каждые 2 часа назад
-                        
-                        testDonations.push({
-                            id: `test_${Date.now()}_${i}`,
-                            username: `Тестер${i + 1}`,
-                            amount: (100 * (i + 1)).toString(),
-                            currency: i % 2 === 0 ? 'RUB' : 'USD',
-                            message: `Тестовое сообщение ${i + 1}`,
-                            created_at: donationDate.toISOString()
-                        });
-                    }
-                    
-                    console.log('Generated test donations:', testDonations);
-                    return testDonations;
+                    // Показываем тестовые данные в случае ошибки
+                    this.processItems([
+                        { icon: '💰', text: 'Ошибка подключения' },
+                        { icon: '🔧', text: 'Проверьте прокси-сервер' }
+                    ]);
                 }
-                return [];
+            }
+
+            processItems(newItems) {
+                if (newItems.length === 0) {
+                    this.items = [{ icon: '⏳', text: 'Нет новых донатов' }];
+                } else {
+                    this.items = newItems;
+                }
+
+                console.log('📋 Processed items:', this.items.length);
+                this.updateStatus(`✅ Загружено: ${this.items.length} элементов`, 'connected');
+                
+                this.startRotation();
+            }
+
+            startRotation() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                }
+
+                if (this.items.length === 0) return;
+
+                // Показываем первый элемент
+                this.showItem(0);
+
+                // Запускаем ротацию если элементов больше одного
+                if (this.items.length > 1) {
+                    this.intervalId = setInterval(() => {
+                        this.currentIndex = (this.currentIndex + 1) % this.items.length;
+                        this.showItem(this.currentIndex);
+                    }, this.duration);
+                }
+            }
+
+            showItem(index) {
+                if (!this.items[index]) return;
+
+                const { icon, text } = this.items[index];
+                const itemElement = document.getElementById('currentItem');
+                const iconElement = itemElement.querySelector('.icon');
+                const textElement = itemElement.querySelector('.text');
+
+                console.log(`📺 Showing: ${text}`);
+
+                // Плавная смена контента
+                itemElement.style.opacity = '0';
+                
+                setTimeout(() => {
+                    iconElement.textContent = icon;
+                    textElement.textContent = text;
+                    itemElement.style.opacity = '1';
+                }, 250);
+            }
+
+            runTest() {
+                console.log('🧪 Running test...');
+                this.startTestMode();
             }
 
             startTestMode() {
-                this.updateStatus('🧪 Тестовый режим - неделя донатов', 'connected');
+                this.updateStatus('🧪 Тестовый режим', 'connected');
                 
-                // Имитируем загрузку донатов за неделю
-                setTimeout(() => {
-                    this.checkForNewDonations();
-                }, 1000);
-            }
+                const testItems = [
+                    { icon: '💰', text: 'Тестер1 — 100 RUB' },
+                    { icon: '💰', text: 'SuperDonator — 500 RUB' },
+                    { icon: '🎁', text: 'GiftMaster — 3 шт' },
+                    { icon: '👤', text: 'Subscriber — подписан 12 мес.' },
+                    { icon: '💰', text: 'BigDonor — 1000 USD' }
+                ];
 
-            async checkForNewDonations() {
-                console.log('Checking for donations...');
-                const donations = await this.fetchDonations();
-                
-                console.log('Received donations:', donations);
-                
-                if (donations && donations.length > 0) {
-                    // Сортируем донаты по дате (новые сначала)
-                    const sortedDonations = donations.sort((a, b) => {
-                        const dateA = new Date(a.created_at || a.date);
-                        const dateB = new Date(b.created_at || b.date);
-                        return dateB - dateA;
-                    });
-
-                    let newDonationsFound = 0;
-
-                    // Проверяем каждый донат
-                    for (const donation of sortedDonations) {
-                        const donationId = donation.id || donation._id || `${donation.username}_${donation.amount}_${donation.created_at}`;
-                        
-                        // Если этот донат еще не показывали
-                        if (!this.processedDonations.has(donationId)) {
-                            console.log('New donation found:', donation);
-                            
-                            // Добавляем в список показанных
-                            this.processedDonations.add(donationId);
-                            
-                            // Показываем донат с задержкой между донатами
-                            setTimeout(() => {
-                                this.showDonation(donation);
-                            }, newDonationsFound * 1000); // 1 секунда между донатами
-                            
-                            newDonationsFound++;
-                            
-                            // Ограничиваем количество одновременно показываемых донатов
-                            if (newDonationsFound >= 5) break;
-                        }
-                    }
-
-                    if (newDonationsFound > 0) {
-                        this.updateStatus(`✅ Показано ${newDonationsFound} новых донатов!`, 'connected');
-                        setTimeout(() => {
-                            this.updateStatus('✅ Подключено', 'connected');
-                        }, 3000);
-                    } else {
-                        this.updateStatus('✅ Подключено', 'connected');
-                    }
-
-                    // Очищаем старые записи (старше недели)
-                    this.cleanupProcessedDonations();
-                } else {
-                    this.updateStatus('⏳ Ожидание донатов...', '');
-                }
-            }
-
-            cleanupProcessedDonations() {
-                // Ограничиваем размер Set, чтобы не занимать много памяти
-                if (this.processedDonations.size > 1000) {
-                    const array = Array.from(this.processedDonations);
-                    this.processedDonations.clear();
-                    // Оставляем только последние 500 записей
-                    array.slice(-500).forEach(id => this.processedDonations.add(id));
-                }
-            }
-
-            showDonation(donation) {
-                console.log('Showing donation:', donation);
-                
-                const widget = document.getElementById('donationWidget');
-                const donorName = widget.querySelector('.donor-name');
-                const amount = widget.querySelector('.amount');
-
-                const displayName = donation.username || donation.name || 'Аноним';
-                const displayAmount = `${donation.amount || '0'} ${donation.currency || 'RUB'}`;
-                
-                // Показываем виджет если он скрыт
-                if (!widget.classList.contains('show')) {
-                    widget.classList.add('show');
-                }
-                
-                // Обновляем текст с анимацией
-                donorName.style.opacity = '0';
-                amount.style.opacity = '0';
-                
-                setTimeout(() => {
-                    donorName.textContent = displayName;
-                    amount.textContent = ` - ${displayAmount}`;
-                    amount.style.display = 'inline';
-                    
-                    donorName.style.opacity = '1';
-                    amount.style.opacity = '1';
-                }, 150);
-
-                console.log(`Displaying: ${displayName} - ${displayAmount}`);
-
-                // Скрываем текст через заданное время, но виджет остается
-                setTimeout(() => {
-                    donorName.style.opacity = '0';
-                    amount.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        donorName.textContent = 'Ожидание донатов...';
-                        amount.style.display = 'none';
-                        donorName.style.opacity = '1';
-                    }, 300);
-                }, this.duration);
+                this.processItems(testItems);
             }
 
             updateStatus(text, className = '') {
                 const status = document.getElementById('status');
                 status.textContent = text;
                 status.className = `status ${className}`;
-                
-                // Обновляем текст в виджете если он в режиме ожидания
-                const widget = document.getElementById('donationWidget');
-                const donorName = widget.querySelector('.donor-name');
-                const amount = widget.querySelector('.amount');
-                
-                if (donorName.textContent === 'Ожидание донатов...' || donorName.textContent === 'Имя донатера') {
-                    if (text.includes('Подключено')) {
-                        donorName.textContent = 'Ожидание донатов...';
-                        amount.style.display = 'none';
-                    } else if (text.includes('Ошибка')) {
-                        donorName.textContent = 'Ошибка подключения';
-                        amount.style.display = 'none';
-                    } else if (text.includes('Тест')) {
-                        donorName.textContent = 'Тестовый режим';
-                        amount.style.display = 'none';
-                    }
-                }
-            }
-
-            testWidget() {
-                const baseUrl = window.location.href.split('?')[0];
-                const testUrl = baseUrl + '?test=true&position=center&duration=5';
-                
-                console.log('Test widget:');
-                console.log('- Base URL:', baseUrl);
-                console.log('- Test URL:', testUrl);
-                console.log('- Opening in new window...');
-                
-                const newWindow = window.open(testUrl, '_blank', 'width=800,height=600');
-                
-                if (!newWindow) {
-                    alert('Не удалось открыть новое окно. Попробуйте разрешить всплывающие окна для этого сайта.');
-                } else {
-                    console.log('Test window opened successfully');
-                }
-            }
-
-            directTest() {
-                // Тест прямо на текущей странице
-                console.log('🔗 Running direct test on current page...');
-                
-                // Сохраняем текущее состояние
-                const originalSetup = this.isSetup;
-                
-                // Запускаем тестовый режим
-                this.isSetup = true;
-                this.position = 'center';
-                this.duration = 5000;
-                
-                document.getElementById('setupContainer').style.display = 'none';
-                this.setupWidget();
-                this.startTestMode();
-                
-                console.log('Direct test started - check the widget!');
-                
-                // Возвращаем форму через 15 секунд
-                setTimeout(() => {
-                    if (!originalSetup) {
-                        document.getElementById('setupContainer').style.display = 'flex';
-                        this.isSetup = false;
-                    }
-                }, 15000);
-            }
-
-            startChecking() {
-                this.checkInterval = setInterval(() => {
-                    this.checkForNewDonations();
-                }, 3000);
-
-                this.refreshInterval = setInterval(() => {
-                    this.refreshAccessToken();
-                }, 50 * 60 * 1000);
-
-                this.checkForNewDonations();
             }
 
             stop() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
                 if (this.checkInterval) {
                     clearInterval(this.checkInterval);
-                }
-                if (this.refreshInterval) {
-                    clearInterval(this.refreshInterval);
+                    this.checkInterval = null;
                 }
             }
         }
@@ -847,35 +560,76 @@
                     setTimeout(() => {
                         btn.textContent = originalText;
                     }, 2000);
-                }).catch(() => {
-                    fallbackCopy(urlText);
                 });
-            } else {
-                fallbackCopy(urlText);
             }
         }
 
-        function fallbackCopy(text) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            
-            const btn = document.querySelector('.copy-btn');
-            const originalText = btn.textContent;
-            btn.textContent = '✅ Скопировано!';
-            setTimeout(() => {
-                btn.textContent = originalText;
-            }, 2000);
-        }
-
+        // Инициализация
         const widget = new DonationWidget();
 
         window.addEventListener('beforeunload', () => {
             widget.stop();
         });
+    </script>
+
+    <!-- Proxy Server Code (save as proxy-server.js) -->
+    <script type="text/plain" id="proxy-server-code">
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.post('/api/donations', async (req, res) => {
+    try {
+        const { access_token } = req.body;
+        
+        console.log('📡 Fetching donations from DonationAlerts...');
+        
+        const response = await axios.get('https://www.donationalerts.com/api/v1/alerts/donations', {
+            headers: {
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        
+        // Обрабатываем данные как в вашем коде
+        const donors = Object.values(
+            response.data.data
+                .filter(d => new Date(d.created_at).getTime() >= weekAgo)
+                .reduce((acc, { username, amount, currency }) => {
+                    if (!acc[username]) {
+                        acc[username] = { 
+                            icon: '💰', 
+                            text: `${username} — ${amount} ${currency}`, 
+                            total: parseFloat(amount) 
+                        };
+                    } else {
+                        acc[username].total += parseFloat(amount);
+                        acc[username].text = `${username} — ${acc[username].total} ${currency}`;
+                    }
+                    return acc;
+                }, {})
+        ).sort((a, b) => b.total - a.total);
+
+        console.log(`✅ Found ${donors.length} donors this week`);
+        
+        res.json({ items: donors });
+        
+    } catch (error) {
+        console.error('❌ Error:', error.response?.data || error.message);
+        res.status(500).json({ error: error.message, items: [] });
+    }
+});
+
+const PORT = 3001;
+app.listen(PORT, () => {
+    console.log(`🚀 Proxy server running on http://localhost:${PORT}`);
+});
     </script>
 </body>
 </html>
