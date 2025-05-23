@@ -309,8 +309,15 @@
                 const refresh = urlParams.get('refresh');
                 const pos = urlParams.get('position');
                 const dur = urlParams.get('duration');
+                const isTest = urlParams.get('test');
 
-                console.log('URL Params:', { token, refresh, pos, dur });
+                console.log('URL Params:', {
+                    token: token ? token.substring(0, 10) + '...' : null,
+                    refresh: refresh ? refresh.substring(0, 10) + '...' : null,
+                    position: pos,
+                    duration: dur,
+                    test: isTest
+                });
 
                 if (token && refresh && token !== 'test') {
                     this.accessToken = token;
@@ -319,17 +326,27 @@
                     this.duration = parseInt(dur) * 1000 || 5000;
                     this.isSetup = true;
                     
+                    console.log('Widget mode: Real API');
+                    console.log('Position:', this.position);
+                    console.log('Duration:', this.duration / 1000, 'seconds');
+                    
                     document.getElementById('setupContainer').style.display = 'none';
                     this.setupWidget();
                     this.startChecking();
-                } else if (urlParams.get('test') === 'true') {
+                } else if (isTest === 'true') {
                     this.isSetup = true;
-                    this.position = 'center';
-                    this.duration = 5000;
+                    this.position = pos || 'center';
+                    this.duration = parseInt(dur) * 1000 || 5000;
+                    
+                    console.log('Widget mode: Test mode');
+                    console.log('Position:', this.position);
+                    console.log('Duration:', this.duration / 1000, 'seconds');
                     
                     document.getElementById('setupContainer').style.display = 'none';
                     this.setupWidget();
                     this.startTestMode();
+                } else {
+                    console.log('Widget mode: Setup required');
                 }
             }
 
@@ -350,8 +367,19 @@
                 this.position = document.getElementById('position').value;
                 this.duration = parseInt(document.getElementById('duration').value) * 1000;
 
+                console.log('Setup form data:');
+                console.log('- Access token length:', this.accessToken ? this.accessToken.length : 0);
+                console.log('- Refresh token length:', this.refreshToken ? this.refreshToken.length : 0);
+                console.log('- Position:', this.position);
+                console.log('- Duration:', this.duration / 1000, 'seconds');
+
                 if (!this.accessToken || !this.refreshToken) {
                     alert('Пожалуйста, заполните все поля!');
+                    return;
+                }
+
+                if (this.accessToken.length < 10 || this.refreshToken.length < 10) {
+                    alert('Токены кажутся слишком короткими. Проверьте правильность!');
                     return;
                 }
 
@@ -359,7 +387,7 @@
                 document.getElementById('widgetUrl').textContent = widgetUrl;
                 document.getElementById('urlResult').style.display = 'block';
                 
-                console.log('Generated URL:', widgetUrl);
+                console.log('Widget URL generated successfully!');
             }
 
             generateWidgetUrl() {
@@ -372,8 +400,16 @@
                 params.set('duration', Math.floor(this.duration / 1000));
                 
                 const finalUrl = baseUrl + '?' + params.toString();
-                console.log('Base URL:', baseUrl);
-                console.log('Final URL:', finalUrl);
+                
+                console.log('URL Generation:');
+                console.log('- Base URL:', baseUrl);
+                console.log('- Parameters:', {
+                    token: this.accessToken ? this.accessToken.substring(0, 15) + '...' : 'empty',
+                    refresh: this.refreshToken ? this.refreshToken.substring(0, 15) + '...' : 'empty',
+                    position: this.position,
+                    duration: Math.floor(this.duration / 1000)
+                });
+                console.log('- Final URL length:', finalUrl.length);
                 
                 return finalUrl;
             }
@@ -712,9 +748,18 @@
                 const baseUrl = window.location.href.split('?')[0];
                 const testUrl = baseUrl + '?test=true&position=center&duration=5';
                 
-                console.log('Opening test URL:', testUrl);
+                console.log('Test widget:');
+                console.log('- Base URL:', baseUrl);
+                console.log('- Test URL:', testUrl);
+                console.log('- Opening in new window...');
                 
-                window.open(testUrl, '_blank', 'width=800,height=600');
+                const newWindow = window.open(testUrl, '_blank', 'width=800,height=600');
+                
+                if (!newWindow) {
+                    alert('Не удалось открыть новое окно. Попробуйте разрешить всплывающие окна для этого сайта.');
+                } else {
+                    console.log('Test window opened successfully');
+                }
             }
 
             startChecking() {
