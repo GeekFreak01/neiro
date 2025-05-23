@@ -219,6 +219,11 @@
         .copy-btn:hover {
             background: rgba(76, 175, 80, 0.3);
         }
+
+        .test-btn {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -253,7 +258,7 @@
                 </div>
                 
                 <button type="submit" class="btn">🚀 Запустить виджет</button>
-                <button type="button" class="btn" id="testBtn" style="margin-top: 10px; background: linear-gradient(45deg, #FF9800, #F57C00);">🧪 Тест виджета</button>
+                <button type="button" class="btn test-btn" id="testBtn">🧪 Тест виджета</button>
             </form>
             
             <div id="urlResult" class="url-result" style="display: none;">
@@ -315,7 +320,6 @@
                     this.setupWidget();
                     this.startChecking();
                 } else if (urlParams.get('test') === 'true') {
-                    // Тестовый режим
                     this.isSetup = true;
                     this.position = 'center';
                     this.duration = 5000;
@@ -335,17 +339,6 @@
                 document.getElementById('testBtn').addEventListener('click', () => {
                     this.testWidget();
                 });
-            }
-
-            testWidget() {
-                // Создаем тестовую ссылку
-                const baseUrl = window.location.href.split('?')[0];
-                const testUrl = baseUrl + '?test=true&position=center&duration=5';
-                
-                console.log('Opening test URL:', testUrl);
-                
-                // Открываем в новом окне
-                window.open(testUrl, '_blank', 'width=800,height=600');
             }
 
             handleSetup() {
@@ -405,8 +398,8 @@
                         body: new URLSearchParams({
                             grant_type: 'refresh_token',
                             refresh_token: this.refreshToken,
-                            client_id: 'your_client_id', // Замените на ваш client_id
-                            client_secret: 'your_client_secret' // Замените на ваш client_secret
+                            client_id: 'your_client_id',
+                            client_secret: 'your_client_secret'
                         })
                     });
 
@@ -424,7 +417,6 @@
 
             async fetchDonations() {
                 try {
-                    // Пробуем несколько методов получения донатов
                     const methods = [
                         () => this.fetchFromAPI(),
                         () => this.fetchFromSocket(),
@@ -442,31 +434,7 @@
                         }
                     }
 
-                startTestMode() {
-                this.updateStatus('🧪 Тестовый режим', 'connected');
-                
-                // Показываем тестовый донат через 2 секунды
-                setTimeout(() => {
-                    const testDonation = {
-                        id: Date.now(),
-                        username: 'Тестовый Донатер',
-                        amount: '500',
-                        currency: 'RUB'
-                    };
-                    this.showDonation(testDonation);
-                }, 2000);
-                
-                // Показываем еще один через 8 секунд
-                setTimeout(() => {
-                    const testDonation2 = {
-                        id: Date.now() + 1,
-                        username: 'Второй Тест',
-                        amount: '1000',
-                        currency: 'USD'
-                    };
-                    this.showDonation(testDonation2);
-                }, 8000);
-            }
+                    return [];
                 } catch (error) {
                     console.error('All methods failed:', error);
                     this.updateStatus('❌ Ошибка соединения', 'error');
@@ -475,8 +443,8 @@
             }
 
             async fetchFromAPI() {
-                // Пробуем разные endpoints DonationAlerts API
                 const endpoints = [
+                    'https://www.donationalerts.com/api/v1/alerts/donations',
                     'https://www.donationalerts.com/api/v1/user/oauth',
                     'https://cors-anywhere.herokuapp.com/https://www.donationalerts.com/api/v1/alerts/donations'
                 ];
@@ -493,7 +461,7 @@
 
                         if (response.status === 401) {
                             if (await this.refreshAccessToken()) {
-                                continue; // Попробуем снова с новым токеном
+                                continue;
                             }
                         }
 
@@ -511,11 +479,8 @@
             }
 
             async fetchFromSocket() {
-                // Имитация WebSocket соединения (DonationAlerts использует Socket.io)
                 return new Promise((resolve, reject) => {
                     try {
-                        // В реальном приложении тут будет Socket.io подключение
-                        // Пока возвращаем пустой массив
                         setTimeout(() => resolve([]), 1000);
                     } catch (error) {
                         reject(error);
@@ -524,7 +489,6 @@
             }
 
             async testWithMockData() {
-                // Тестовые данные для проверки виджета
                 if (window.location.search.includes('test=true')) {
                     return [{
                         id: Date.now(),
@@ -535,8 +499,32 @@
                         created_at: new Date().toISOString()
                     }];
                 }
-                return [];/v1/alerts/donations',
-                    'https://www.donationalerts.com/api
+                return [];
+            }
+
+            startTestMode() {
+                this.updateStatus('🧪 Тестовый режим', 'connected');
+                
+                setTimeout(() => {
+                    const testDonation = {
+                        id: Date.now(),
+                        username: 'Тестовый Донатер',
+                        amount: '500',
+                        currency: 'RUB'
+                    };
+                    this.showDonation(testDonation);
+                }, 2000);
+                
+                setTimeout(() => {
+                    const testDonation2 = {
+                        id: Date.now() + 1,
+                        username: 'Второй Тест',
+                        amount: '1000',
+                        currency: 'USD'
+                    };
+                    this.showDonation(testDonation2);
+                }, 8000);
+            }
 
             async checkForNewDonations() {
                 console.log('Checking for donations...');
@@ -555,7 +543,6 @@
                         this.showDonation(latestDonation);
                         this.updateStatus('✅ Новый донат получен!', 'connected');
                         
-                        // Возвращаемся к обычному статусу через 3 секунды  
                         setTimeout(() => {
                             this.updateStatus('✅ Подключено', 'connected');
                         }, 3000);
@@ -574,7 +561,6 @@
                 const donorName = widget.querySelector('.donor-name');
                 const amount = widget.querySelector('.amount');
 
-                // Обновляем данные
                 const displayName = donation.username || donation.name || 'Аноним';
                 const displayAmount = `${donation.amount || '0'} ${donation.currency || 'RUB'}`;
                 
@@ -583,11 +569,9 @@
 
                 console.log(`Displaying: ${displayName} - ${displayAmount}`);
 
-                // Показываем виджет
                 widget.classList.remove('hide');
                 widget.classList.add('show');
 
-                // Скрываем через заданное время
                 setTimeout(() => {
                     widget.classList.add('hide');
                     widget.classList.remove('show');
@@ -600,18 +584,24 @@
                 status.className = `status ${className}`;
             }
 
+            testWidget() {
+                const baseUrl = window.location.href.split('?')[0];
+                const testUrl = baseUrl + '?test=true&position=center&duration=5';
+                
+                console.log('Opening test URL:', testUrl);
+                
+                window.open(testUrl, '_blank', 'width=800,height=600');
+            }
+
             startChecking() {
-                // Проверяем новые донаты каждые 3 секунды
                 this.checkInterval = setInterval(() => {
                     this.checkForNewDonations();
                 }, 3000);
 
-                // Обновляем токен каждые 50 минут
                 this.refreshInterval = setInterval(() => {
                     this.refreshAccessToken();
                 }, 50 * 60 * 1000);
 
-                // Первоначальная проверка
                 this.checkForNewDonations();
             }
 
@@ -625,7 +615,6 @@
             }
         }
 
-        // Глобальные функции
         function copyUrl() {
             const urlText = document.getElementById('widgetUrl').textContent;
             if (navigator.clipboard) {
@@ -637,7 +626,6 @@
                         btn.textContent = originalText;
                     }, 2000);
                 }).catch(() => {
-                    // Fallback для старых браузеров
                     fallbackCopy(urlText);
                 });
             } else {
@@ -661,10 +649,8 @@
             }, 2000);
         }
 
-        // Инициализация виджета
         const widget = new DonationWidget();
 
-        // Очистка при закрытии страницы
         window.addEventListener('beforeunload', () => {
             widget.stop();
         });
