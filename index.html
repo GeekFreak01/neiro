@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Donation Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: transparent;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .config-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            max-width: 350px;
+            transition: opacity 0.3s ease;
+        }
+
+        .config-panel.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .config-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 14px;
+        }
+
+        .config-group {
+            margin-bottom: 15px;
+        }
+
+        .config-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .config-group input, .config-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .config-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .widget-url {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        .donation-widget {
+            position: relative;
+            display: none;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+            max-width: 500px;
+            animation: slideIn 0.5s ease-out forwards;
+            opacity: 0;
+            transform: translateX(-100%);
+        }
+
+        @keyframes slideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-100%) scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        @keyframes slideOut {
+            0% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-100%) scale(0.8);
+            }
+        }
+
+        .donation-widget.removing {
+            animation: slideOut 0.5s ease-in forwards;
+        }
+
+        .money-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .money-icon::before {
+            content: '💰';
+            font-size: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .money-icon::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .donation-info {
+            color: white;
+            font-weight: 500;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            flex-grow: 1;
+        }
+
+        .donor-name {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .amount {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+
+        .success {
+            background: rgba(76, 175, 80, 0.9);
+        }
+
+        .widget-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <button class="config-toggle" onclick="toggleConfig()">⚙️ Настройки</button>
+    
+    <div class="config-panel" id="configPanel">
+        <h3 style="margin-bottom: 20px; color: #fff;">Настройка виджета донатов</h3>
+        
+        <div class="config-group">
+            <label>API Endpoint URL:</label>
+            <input type="text" id="apiUrl" placeholder="https://api.example.com/donations" />
+        </div>
+        
+        <div class="config-group">
+            <label>Access Token:</label>
+            <input type="text" id="accessToken" placeholder="Ваш access_token" />
+        </div>
+        
+        <div class="config-group">
+            <label>Refresh Token:</label>
+            <input type="text" id="refreshToken" placeholder="Ваш refresh_token" />
+        </div>
+        
+        <div class="config-group">
+            <label>Интервал обновления (секунды):</label>
+            <input type="number" id="updateInterval" value="5" min="1" max="60" />
+        </div>
+        
+        <div class="config-group">
+            <label>Время показа доната (секунды):</label>
+            <input type="number" id="displayTime" value="10" min="3" max="30" />
+        </div>
+        
+        <div class="config-group">
+            <label>Максимум донатов на экране:</label>
+            <input type="number" id="maxDonations" value="3" min="1" max="10" />
+        </div>
+        
+        <button class="btn" onclick="saveConfig()">Сохранить настройки</button>
+        <button class="btn" onclick="testDonation()" style="margin-left: 10px; background: linear-gradient(135deg, #ff6b6b, #feca57);">Тест</button>
+        
+        <div class="widget-url" id="widgetUrl" style="display: none;">
+            <strong>Ссылка для OBS:</strong><br>
+            <span id="urlText"></span>
+            <button onclick="copyUrl()" style="margin-top: 5px; padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Копировать</button>
+        </div>
+    </div>
+    
+    <div class="widget-container" id="widgetContainer">
+        <!-- Donations will appear here -->
+    </div>
+    
+    <div class="status" id="status">Готов к работе</div>
+
+    <script>
+        class DonationWidget {
+            constructor() {
+                this.config = this.loadConfig();
+                this.donations = [];
+                this.isPolling = false;
+                this.pollInterval = null;
+                this.lastDonationId = null;
+                
+                this.initializeFromURL();
+                this.updateStatus('Инициализация...');
+                
+                if (this.config.apiUrl && this.config.accessToken) {
+                    this.startPolling();
+                }
+            }
+            
+            initializeFromURL() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const configParam = urlParams.get('config');
+                
+                if (configParam) {
+                    try {
+                        const urlConfig = JSON.parse(atob(configParam));
+                        this.config = { ...this.config, ...urlConfig };
+                        this.hideConfigPanel();
+                        document.querySelector('.config-toggle').style.display = 'none';
+                    } catch (e) {
+                        console.error('Ошибка декодирования конфигурации из URL:', e);
+                    }
+                }
+                
+                this.loadConfigToForm();
+            }
+            
+            loadConfig() {
+                const saved = localStorage.getItem('donationWidgetConfig');
+                return saved ? JSON.parse(saved) : {
+                    apiUrl: '',
+                    accessToken: '',
+                    refreshToken: '',
+                    updateInterval: 5,
+                    displayTime: 10,
+                    maxDonations: 3
+                };
+            }
+            
+            saveConfig() {
+                this.config = {
+                    apiUrl: document.getElementById('apiUrl').value,
+                    accessToken: document.getElementById('accessToken').value,
+                    refreshToken: document.getElementById('refreshToken').value,
+                    updateInterval: parseInt(document.getElementById('updateInterval').value),
+                    displayTime: parseInt(document.getElementById('displayTime').value),
+                    maxDonations: parseInt(document.getElementById('maxDonations').value)
+                };
+                
+                localStorage.setItem('donationWidgetConfig', JSON.stringify(this.config));
+                this.generateWidgetUrl();
+                this.updateStatus('Настройки сохранены', 'success');
+                
+                this.restartPolling();
+            }
+            
+            loadConfigToForm() {
+                document.getElementById('apiUrl').value = this.config.apiUrl || '';
+                document.getElementById('accessToken').value = this.config.accessToken || '';
+                document.getElementById('refreshToken').value = this.config.refreshToken || '';
+                document.getElementById('updateInterval').value = this.config.updateInterval || 5;
+                document.getElementById('displayTime').value = this.config.displayTime || 10;
+                document.getElementById('maxDonations').value = this.config.maxDonations || 3;
+            }
+            
+            generateWidgetUrl() {
+                const config = {
+                    apiUrl: this.config.apiUrl,
+                    accessToken: this.config.accessToken,
+                    refreshToken: this.config.refreshToken,
+                    updateInterval: this.config.updateInterval,
+                    displayTime: this.config.displayTime,
+                    maxDonations: this.config.maxDonations
+                };
+                
+                const encodedConfig = btoa(JSON.stringify(config));
+                const url = `${window.location.origin}${window.location.pathname}?config=${encodedConfig}`;
+                
+                document.getElementById('widgetUrl').style.display = 'block';
+                document.getElementById('urlText').textContent = url;
+            }
+            
+            async refreshAccessToken() {
+                if (!this.config.refreshToken) {
+                    throw new Error('Refresh token не найден');
+                }
+                
+                // Здесь должен быть ваш endpoint для обновления токена
+                // Пример реализации:
+                try {
+                    const response = await fetch('/api/refresh-token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            refresh_token: this.config.refreshToken
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.config.accessToken = data.access_token;
+                        if (data.refresh_token) {
+                            this.config.refreshToken = data.refresh_token;
+                        }
+                        localStorage.setItem('donationWidgetConfig', JSON.stringify(this.config));
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Ошибка обновления токена:', error);
+                }
+                return false;
+            }
+            
+            async fetchDonations() {
+                if (!this.config.apiUrl || !this.config.accessToken) {
+                    this.updateStatus('Не настроен API URL или токен', 'error');
+                    return;
+                }
+                
+                try {
+                    let response = await fetch(this.config.apiUrl, {
+                        headers: {
+                            'Authorization': `Bearer ${this.config.accessToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    // Если токен истек, попробуем обновить его
+                    if (response.status === 401) {
+                        const refreshed = await this.refreshAccessToken();
+                        if (refreshed) {
+                            response = await fetch(this.config.apiUrl, {
+                                headers: {
+                                    'Authorization': `Bearer ${this.config.accessToken}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                        }
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.processDonations(data);
+                    this.updateStatus('Подключено', 'success');
+                    
+                } catch (error) {
+                    console.error('Ошибка получения донатов:', error);
+                    this.updateStatus(`Ошибка: ${error.message}`, 'error');
+                }
+            }
+            
+            processDonations(data) {
+                // Предполагаем, что API возвращает массив донатов
+                // Адаптируйте под ваш API
+                let donations = Array.isArray(data) ? data : (data.donations || data.data || []);
+                
+                // Фильтруем новые донаты
+                const newDonations = donations.filter(donation => {
+                    const donationId = donation.id || donation.donation_id || donation._id;
+                    return donationId && donationId !== this.lastDonationId;
+                });
+                
+                if (newDonations.length > 0) {
+                    // Обновляем ID последнего доната
+                    const lastDonation = newDonations[newDonations.length - 1];
+                    this.lastDonationId = lastDonation.id || lastDonation.donation_id || lastDonation._id;
+                    
+                    // Показываем новые донаты
+                    newDonations.forEach(donation => {
+                        this.showDonation(donation);
+                    });
+                }
+            }
+            
+            showDonation(donation) {
+                // Адаптируйте поля под ваш API
+                const donorName = donation.donor_name || donation.name || donation.username || 'Аноним';
+                const amount = donation.amount || donation.sum || 0;
+                const currency = donation.currency || donation.curr || 'RUB';
+                
+                const donationElement = this.createDonationElement(donorName, amount, currency);
+                
+                const container = document.getElementById('widgetContainer');
+                container.appendChild(donationElement);
+                
+                // Показываем элемент
+                setTimeout(() => {
+                    donationElement.style.display = 'flex';
+                }, 100);
+                
+                // Управляем количеством донатов на экране
+                this.manageDonationsLimit();
+                
+                // Автоматически убираем донат через указанное время
+                setTimeout(() => {
+                    this.removeDonation(donationElement);
+                }, this.config.displayTime * 1000);
+            }
+            
+            createDonationElement(donorName, amount, currency) {
+                const donationDiv = document.createElement('div');
+                donationDiv.className = 'donation-widget';
+                
+                donationDiv.innerHTML = `
+                    <div class="money-icon"></div>
+                    <div class="donation-info">
+                        <span class="donor-name">${this.escapeHtml(donorName)}</span>
+                        <span class="amount">- ${amount} ${currency}</span>
+                    </div>
+                `;
+                
+                return donationDiv;
+            }
+            
+            manageDonationsLimit() {
+                const container = document.getElementById('widgetContainer');
+                const donations = container.querySelectorAll('.donation-widget:not(.removing)');
+                
+                if (donations.length > this.config.maxDonations) {
+                    const oldest = donations[0];
+                    this.removeDonation(oldest);
+                }
+            }
+            
+            removeDonation(element) {
+                if (element && element.parentNode) {
+                    element.classList.add('removing');
+                    setTimeout(() => {
+                        if (element.parentNode) {
+                            element.parentNode.removeChild(element);
+                        }
+                    }, 500);
+                }
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            startPolling() {
+                if (this.isPolling) return;
+                
+                this.isPolling = true;
+                this.fetchDonations(); // Первый запрос сразу
+                
+                this.pollInterval = setInterval(() => {
+                    this.fetchDonations();
+                }, this.config.updateInterval * 1000);
+                
+                this.updateStatus('Мониторинг активен', 'success');
+            }
+            
+            stopPolling() {
+                this.isPolling = false;
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                }
+                this.updateStatus('Мониторинг остановлен');
+            }
+            
+            restartPolling() {
+                this.stopPolling();
+                if (this.config.apiUrl && this.config.accessToken) {
+                    setTimeout(() => this.startPolling(), 1000);
+                }
+            }
+            
+            updateStatus(message, type = '') {
+                const statusElement = document.getElementById('status');
+                statusElement.textContent = message;
+                statusElement.className = `status ${type}`;
+            }
+            
+            testDonation() {
+                const testDonation = {
+                    donor_name: 'Тестовый донатер',
+                    amount: Math.floor(Math.random() * 1000) + 100,
+                    currency: 'RUB'
+                };
+                
+                this.showDonation(testDonation);
+                this.updateStatus('Тестовый донат показан', 'success');
+            }
+            
+            hideConfigPanel() {
+                document.getElementById('configPanel').classList.add('hidden');
+            }
+        }
+        
+        // Глобальные функции
+        let widget;
+        
+        function toggleConfig() {
+            const panel = document.getElementById('configPanel');
+            panel.classList.toggle('hidden');
+        }
+        
+        function saveConfig() {
+            widget.saveConfig();
+        }
+        
+        function testDonation() {
+            widget.testDonation();
+        }
+        
+        function copyUrl() {
+            const urlText = document.getElementById('urlText').textContent;
+            navigator.clipboard.writeText(urlText).then(() => {
+                alert('Ссылка скопирована в буфер обмена!');
+            });
+        }
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            widget = new DonationWidget();
+        });
+    </script>
+</body>
+</html>
