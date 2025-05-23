@@ -253,7 +253,7 @@
                 </div>
                 
                 <button type="submit" class="btn">🚀 Запустить виджет</button>
-                <button type="button" class="btn" onclick="testWidget()" style="margin-top: 10px; background: linear-gradient(45deg, #FF9800, #F57C00);">🧪 Тест виджета</button>
+                <button type="button" class="btn" id="testBtn" style="margin-top: 10px; background: linear-gradient(45deg, #FF9800, #F57C00);">🧪 Тест виджета</button>
             </form>
             
             <div id="urlResult" class="url-result" style="display: none;">
@@ -302,9 +302,11 @@
                 const pos = urlParams.get('position');
                 const dur = urlParams.get('duration');
 
-                if (token && refresh) {
-                    this.accessToken = decodeURIComponent(token);
-                    this.refreshToken = decodeURIComponent(refresh);
+                console.log('URL Params:', { token, refresh, pos, dur });
+
+                if (token && refresh && token !== 'test') {
+                    this.accessToken = token;
+                    this.refreshToken = refresh;
                     this.position = pos || 'center';
                     this.duration = parseInt(dur) * 1000 || 5000;
                     this.isSetup = true;
@@ -312,6 +314,15 @@
                     document.getElementById('setupContainer').style.display = 'none';
                     this.setupWidget();
                     this.startChecking();
+                } else if (urlParams.get('test') === 'true') {
+                    // Тестовый режим
+                    this.isSetup = true;
+                    this.position = 'center';
+                    this.duration = 5000;
+                    
+                    document.getElementById('setupContainer').style.display = 'none';
+                    this.setupWidget();
+                    this.startTestMode();
                 }
             }
 
@@ -320,6 +331,21 @@
                     e.preventDefault();
                     this.handleSetup();
                 });
+                
+                document.getElementById('testBtn').addEventListener('click', () => {
+                    this.testWidget();
+                });
+            }
+
+            testWidget() {
+                // Создаем тестовую ссылку
+                const baseUrl = window.location.href.split('?')[0];
+                const testUrl = baseUrl + '?test=true&position=center&duration=5';
+                
+                console.log('Opening test URL:', testUrl);
+                
+                // Открываем в новом окне
+                window.open(testUrl, '_blank', 'width=800,height=600');
             }
 
             handleSetup() {
@@ -336,18 +362,24 @@
                 const widgetUrl = this.generateWidgetUrl();
                 document.getElementById('widgetUrl').textContent = widgetUrl;
                 document.getElementById('urlResult').style.display = 'block';
+                
+                console.log('Generated URL:', widgetUrl);
             }
 
             generateWidgetUrl() {
-                const baseUrl = window.location.origin + window.location.pathname;
-                const params = new URLSearchParams({
-                    token: encodeURIComponent(this.accessToken),
-                    refresh: encodeURIComponent(this.refreshToken),
-                    position: this.position,
-                    duration: this.duration / 1000
-                });
+                const baseUrl = window.location.href.split('?')[0];
+                const params = new URLSearchParams();
                 
-                return `${baseUrl}?${params.toString()}`;
+                params.set('token', this.accessToken);
+                params.set('refresh', this.refreshToken);
+                params.set('position', this.position);
+                params.set('duration', Math.floor(this.duration / 1000));
+                
+                const finalUrl = baseUrl + '?' + params.toString();
+                console.log('Base URL:', baseUrl);
+                console.log('Final URL:', finalUrl);
+                
+                return finalUrl;
             }
 
             setupWidget() {
@@ -410,7 +442,31 @@
                         }
                     }
 
-                    return [];
+                startTestMode() {
+                this.updateStatus('🧪 Тестовый режим', 'connected');
+                
+                // Показываем тестовый донат через 2 секунды
+                setTimeout(() => {
+                    const testDonation = {
+                        id: Date.now(),
+                        username: 'Тестовый Донатер',
+                        amount: '500',
+                        currency: 'RUB'
+                    };
+                    this.showDonation(testDonation);
+                }, 2000);
+                
+                // Показываем еще один через 8 секунд
+                setTimeout(() => {
+                    const testDonation2 = {
+                        id: Date.now() + 1,
+                        username: 'Второй Тест',
+                        amount: '1000',
+                        currency: 'USD'
+                    };
+                    this.showDonation(testDonation2);
+                }, 8000);
+            }
                 } catch (error) {
                     console.error('All methods failed:', error);
                     this.updateStatus('❌ Ошибка соединения', 'error');
@@ -572,23 +628,37 @@
         // Глобальные функции
         function copyUrl() {
             const urlText = document.getElementById('widgetUrl').textContent;
-            navigator.clipboard.writeText(urlText).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                const originalText = btn.textContent;
-                btn.textContent = '✅ Скопировано!';
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                }, 2000);
-            });
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(urlText).then(() => {
+                    const btn = document.querySelector('.copy-btn');
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅ Скопировано!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                }).catch(() => {
+                    // Fallback для старых браузеров
+                    fallbackCopy(urlText);
+                });
+            } else {
+                fallbackCopy(urlText);
+            }
         }
 
-        function testWidget() {
-            // Создаем тестовую ссылку
-            const baseUrl = window.location.origin + window.location.pathname;
-            const testUrl = `${baseUrl}?test=true&token=test&refresh=test&position=center&duration=5`;
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
             
-            // Открываем в новом окне
-            window.open(testUrl, '_blank', 'width=800,height=600');
+            const btn = document.querySelector('.copy-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Скопировано!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
         }
 
         // Инициализация виджета
