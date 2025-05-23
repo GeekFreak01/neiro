@@ -253,6 +253,7 @@
                 </div>
                 
                 <button type="submit" class="btn">🚀 Запустить виджет</button>
+                <button type="button" class="btn" onclick="testWidget()" style="margin-top: 10px; background: linear-gradient(45deg, #FF9800, #F57C00);">🧪 Тест виджета</button>
             </form>
             
             <div id="urlResult" class="url-result" style="display: none;">
@@ -391,44 +392,118 @@
 
             async fetchDonations() {
                 try {
-                    const response = await fetch('https://www.donationalerts.com/api/v1/alerts/donations', {
-                        headers: {
-                            'Authorization': `Bearer ${this.accessToken}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
+                    // Пробуем несколько методов получения донатов
+                    const methods = [
+                        () => this.fetchFromAPI(),
+                        () => this.fetchFromSocket(),
+                        () => this.testWithMockData()
+                    ];
 
-                    if (response.status === 401) {
-                        // Токен истек, пробуем обновить
-                        if (await this.refreshAccessToken()) {
-                            return this.fetchDonations();
-                        } else {
-                            throw new Error('Failed to refresh token');
+                    for (const method of methods) {
+                        try {
+                            const result = await method();
+                            if (result && result.length > 0) {
+                                return result;
+                            }
+                        } catch (error) {
+                            console.log('Method failed, trying next...', error.message);
                         }
                     }
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.data || [];
-                    } else {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
+                    return [];
                 } catch (error) {
-                    console.error('Error fetching donations:', error);
+                    console.error('All methods failed:', error);
                     this.updateStatus('❌ Ошибка соединения', 'error');
                     return [];
                 }
             }
 
+            async fetchFromAPI() {
+                // Пробуем разные endpoints DonationAlerts API
+                const endpoints = [
+                    'https://www.donationalerts.com/api/v1/user/oauth',
+                    'https://cors-anywhere.herokuapp.com/https://www.donationalerts.com/api/v1/alerts/donations'
+                ];
+
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint, {
+                            headers: {
+                                'Authorization': `Bearer ${this.accessToken}`,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (response.status === 401) {
+                            if (await this.refreshAccessToken()) {
+                                continue; // Попробуем снова с новым токеном
+                            }
+                        }
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('API Response:', data);
+                            return data.data || data || [];
+                        }
+                    } catch (error) {
+                        console.log(`Failed endpoint ${endpoint}:`, error.message);
+                        continue;
+                    }
+                }
+                throw new Error('All API endpoints failed');
+            }
+
+            async fetchFromSocket() {
+                // Имитация WebSocket соединения (DonationAlerts использует Socket.io)
+                return new Promise((resolve, reject) => {
+                    try {
+                        // В реальном приложении тут будет Socket.io подключение
+                        // Пока возвращаем пустой массив
+                        setTimeout(() => resolve([]), 1000);
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            async testWithMockData() {
+                // Тестовые данные для проверки виджета
+                if (window.location.search.includes('test=true')) {
+                    return [{
+                        id: Date.now(),
+                        username: 'Тестовый донатер',
+                        amount: '100',
+                        currency: 'RUB',
+                        message: 'Тестовое сообщение',
+                        created_at: new Date().toISOString()
+                    }];
+                }
+                return [];/v1/alerts/donations',
+                    'https://www.donationalerts.com/api
+
             async checkForNewDonations() {
+                console.log('Checking for donations...');
                 const donations = await this.fetchDonations();
                 
-                if (donations.length > 0) {
+                console.log('Received donations:', donations);
+                
+                if (donations && donations.length > 0) {
                     const latestDonation = donations[0];
+                    
+                    console.log('Latest donation:', latestDonation);
+                    console.log('Last donation ID:', this.lastDonationId);
                     
                     if (this.lastDonationId !== latestDonation.id) {
                         this.lastDonationId = latestDonation.id;
                         this.showDonation(latestDonation);
+                        this.updateStatus('✅ Новый донат получен!', 'connected');
+                        
+                        // Возвращаемся к обычному статусу через 3 секунды  
+                        setTimeout(() => {
+                            this.updateStatus('✅ Подключено', 'connected');
+                        }, 3000);
+                    } else {
                         this.updateStatus('✅ Подключено', 'connected');
                     }
                 } else {
@@ -437,17 +512,24 @@
             }
 
             showDonation(donation) {
+                console.log('Showing donation:', donation);
+                
                 const widget = document.getElementById('donationWidget');
                 const donorName = widget.querySelector('.donor-name');
                 const amount = widget.querySelector('.amount');
 
                 // Обновляем данные
-                donorName.textContent = donation.username || 'Аноним';
-                amount.textContent = `${donation.amount} ${donation.currency}`;
+                const displayName = donation.username || donation.name || 'Аноним';
+                const displayAmount = `${donation.amount || '0'} ${donation.currency || 'RUB'}`;
+                
+                donorName.textContent = displayName;
+                amount.textContent = displayAmount;
+
+                console.log(`Displaying: ${displayName} - ${displayAmount}`);
 
                 // Показываем виджет
-                widget.classList.add('show');
                 widget.classList.remove('hide');
+                widget.classList.add('show');
 
                 // Скрываем через заданное время
                 setTimeout(() => {
@@ -498,6 +580,15 @@
                     btn.textContent = originalText;
                 }, 2000);
             });
+        }
+
+        function testWidget() {
+            // Создаем тестовую ссылку
+            const baseUrl = window.location.origin + window.location.pathname;
+            const testUrl = `${baseUrl}?test=true&token=test&refresh=test&position=center&duration=5`;
+            
+            // Открываем в новом окне
+            window.open(testUrl, '_blank', 'width=800,height=600');
         }
 
         // Инициализация виджета
