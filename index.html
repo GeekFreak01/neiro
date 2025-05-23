@@ -260,6 +260,7 @@
                 
                 <button type="submit" class="btn">🚀 Запустить виджет</button>
                 <button type="button" class="btn test-btn" id="testBtn">🧪 Тест виджета</button>
+                <button type="button" class="btn test-btn" id="directTestBtn" style="background: linear-gradient(45deg, #9C27B0, #673AB7);">🔗 Прямой тест</button>
             </form>
             
             <div id="urlResult" class="url-result" style="display: none;">
@@ -304,6 +305,9 @@
             }
 
             initFromUrl() {
+                console.log('Full URL:', window.location.href);
+                console.log('Search params:', window.location.search);
+                
                 const urlParams = new URLSearchParams(window.location.search);
                 const token = urlParams.get('token');
                 const refresh = urlParams.get('refresh');
@@ -312,12 +316,19 @@
                 const isTest = urlParams.get('test');
 
                 console.log('URL Params:', {
-                    token: token ? token.substring(0, 10) + '...' : null,
-                    refresh: refresh ? refresh.substring(0, 10) + '...' : null,
+                    token: token ? (token.length > 15 ? token.substring(0, 15) + '...' : token) : null,
+                    refresh: refresh ? (refresh.length > 15 ? refresh.substring(0, 15) + '...' : refresh) : null,
                     position: pos,
                     duration: dur,
                     test: isTest
                 });
+
+                // Проверяем все возможные параметры в URL
+                const allParams = {};
+                for (const [key, value] of urlParams.entries()) {
+                    allParams[key] = value;
+                }
+                console.log('All URL parameters:', allParams);
 
                 if (token && refresh && token !== 'test') {
                     this.accessToken = token;
@@ -326,9 +337,9 @@
                     this.duration = parseInt(dur) * 1000 || 5000;
                     this.isSetup = true;
                     
-                    console.log('Widget mode: Real API');
-                    console.log('Position:', this.position);
-                    console.log('Duration:', this.duration / 1000, 'seconds');
+                    console.log('✅ Widget mode: Real API');
+                    console.log('✅ Position:', this.position);
+                    console.log('✅ Duration:', this.duration / 1000, 'seconds');
                     
                     document.getElementById('setupContainer').style.display = 'none';
                     this.setupWidget();
@@ -338,15 +349,16 @@
                     this.position = pos || 'center';
                     this.duration = parseInt(dur) * 1000 || 5000;
                     
-                    console.log('Widget mode: Test mode');
-                    console.log('Position:', this.position);
-                    console.log('Duration:', this.duration / 1000, 'seconds');
+                    console.log('🧪 Widget mode: Test mode');
+                    console.log('✅ Position:', this.position);
+                    console.log('✅ Duration:', this.duration / 1000, 'seconds');
                     
                     document.getElementById('setupContainer').style.display = 'none';
                     this.setupWidget();
                     this.startTestMode();
                 } else {
-                    console.log('Widget mode: Setup required');
+                    console.log('⚙️ Widget mode: Setup required');
+                    console.log('Reason: token=' + (token || 'null') + ', refresh=' + (refresh || 'null') + ', test=' + (isTest || 'null'));
                 }
             }
 
@@ -358,6 +370,10 @@
                 
                 document.getElementById('testBtn').addEventListener('click', () => {
                     this.testWidget();
+                });
+                
+                document.getElementById('directTestBtn').addEventListener('click', () => {
+                    this.directTest();
                 });
             }
 
@@ -388,6 +404,16 @@
                 document.getElementById('urlResult').style.display = 'block';
                 
                 console.log('Widget URL generated successfully!');
+                console.log('Testing URL parsing...');
+                
+                // Тестируем парсинг URL
+                const testParams = new URLSearchParams(widgetUrl.split('?')[1]);
+                console.log('URL Test - parsed params:', {
+                    token: testParams.get('token') ? 'present' : 'missing',
+                    refresh: testParams.get('refresh') ? 'present' : 'missing',
+                    position: testParams.get('position'),
+                    duration: testParams.get('duration')
+                });
             }
 
             generateWidgetUrl() {
@@ -760,6 +786,33 @@
                 } else {
                     console.log('Test window opened successfully');
                 }
+            }
+
+            directTest() {
+                // Тест прямо на текущей странице
+                console.log('🔗 Running direct test on current page...');
+                
+                // Сохраняем текущее состояние
+                const originalSetup = this.isSetup;
+                
+                // Запускаем тестовый режим
+                this.isSetup = true;
+                this.position = 'center';
+                this.duration = 5000;
+                
+                document.getElementById('setupContainer').style.display = 'none';
+                this.setupWidget();
+                this.startTestMode();
+                
+                console.log('Direct test started - check the widget!');
+                
+                // Возвращаем форму через 15 секунд
+                setTimeout(() => {
+                    if (!originalSetup) {
+                        document.getElementById('setupContainer').style.display = 'flex';
+                        this.isSetup = false;
+                    }
+                }, 15000);
             }
 
             startChecking() {
