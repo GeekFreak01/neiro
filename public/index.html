@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DonationAlerts Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: transparent;
+            overflow: hidden;
+        }
+
+        .setup-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .setup-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .setup-form h2 {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            color: white;
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .test-btn {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        .widget-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .donation-widget {
+            width: 320px;
+            height: 50px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 4px 4px 0 rgba(68, 0, 102, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: opacity 0.5s ease;
+        }
+
+        .icon {
+            margin-right: 8px;
+            font-size: 20px;
+            color: #440066;
+        }
+
+        .text {
+            color: #000;
+        }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 100;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .status.connected {
+            background: rgba(76, 175, 80, 0.8);
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.8);
+        }
+
+        .url-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .url-result h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .url-result p {
+            color: white;
+            font-size: 14px;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .copy-btn {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .copy-btn:hover {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .info-block {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-block h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .info-block p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            10%, 90% { opacity: 1; }
+        }
+
+        .animate-fade-in-out {
+            animation: fadeInOut 4s ease infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="setupContainer" class="setup-container">
+        <div class="setup-form">
+            <h2>💰 Виджет донатов DonationAlerts</h2>
+            
+            <div class="info-block">
+                <h4>📋 Требуется прокси-сервер</h4>
+                <p>DonationAlerts API блокирует запросы из браузера. Нужен простой прокси-сервер или используйте готовое решение:</p>
+                <p><strong>1.</strong> Создайте файл proxy-server.js<br>
+                <strong>2.</strong> Запустите: node proxy-server.js<br>
+                <strong>3.</strong> Укажите URL прокси ниже</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="proxyUrl">URL прокси-сервера:</label>
+                <input type="text" id="proxyUrl" value="http://localhost:3001" placeholder="http://localhost:3001">
+            </div>
+            
+            <div class="form-group">
+                <label for="accessToken">DonationAlerts Access Token:</label>
+                <input type="text" id="accessToken" placeholder="Введите ваш access token">
+            </div>
+            
+            <div class="form-group">
+                <label for="position">Позиция виджета:</label>
+                <select id="position">
+                    <option value="center">По центру</option>
+                    <option value="top-left">Верх слева</option>
+                    <option value="top-right">Верх справа</option>
+                    <option value="bottom-left">Низ слева</option>
+                    <option value="bottom-right">Низ справа</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">Время показа каждого элемента (секунды):</label>
+                <input type="number" id="duration" value="4" min="1" max="10">
+            </div>
+            
+            <button type="button" class="btn" id="startBtn">🚀 Запустить виджет</button>
+            <button type="button" class="btn test-btn" id="testBtn">🧪 Тест анимации</button>
+            
+            <div id="urlResult" class="url-result" style="display: none;">
+                <h3>✅ Ссылка для OBS готова!</h3>
+                <p id="widgetUrl"></p>
+                <button class="copy-btn" onclick="copyUrl()">📋 Копировать ссылку</button>
+                <p style="font-size: 12px; margin-top: 10px; color: rgba(255,255,255,0.7);">
+                    Добавьте эту ссылку как "Browser Source" в OBS Studio
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="status" id="status">⚡ Настройка виджета</div>
+
+    <div class="widget-container">
+        <div class="donation-widget" id="donationWidget">
+            <div class="item" id="currentItem">
+                <div class="icon">💰</div>
+                <div class="text">Загрузка донатов...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DonationWidget {
+            constructor() {
+                this.proxyUrl = 'http://localhost:3001';
+                this.accessToken = '';
+                this.position = 'center';
+                this.duration = 4000;
+                this.isSetup = false;
+                this.items = [];
+                this.currentIndex = 0;
+                this.intervalId = null;
+                this.checkInterval = null;
+                
+                this.initFromUrl();
+                this.bindEvents();
+                
+                window.widget = this;
+            }
+
+            initFromUrl() {
+                console.log('🔗 Checking URL parameters...');
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const proxyUrl = urlParams.get('proxy_url');
+                const accessToken = urlParams.get('access_token');
+                const position = urlParams.get('position') || 'center';
+                const duration = urlParams.get('duration') || '4';
+                const isTest = urlParams.get('test') === 'true';
+
+                if (isTest) {
+                    console.log('🧪 Test mode activated');
+                    this.isSetup = true;
+                    this.position = position;
+                    this.duration = parseInt(duration) * 1000;
+                    
+                    document.getElementById('setupContainer').style.display = 'none';
+                    this.setupWidget();
+                    this.startTestMode();
+                    return;
+                }
+
+                if (proxyUrl && accessToken) {
+                    this.proxyUrl = proxyUrl;
+                    this.accessToken = accessToken;
+                    this.position = position;
+                    this.duration = parseInt(duration) * 1000;
+                    this.isSetup = true;
+                    
+                    console.log('✅ Widget configured via URL');
+                    
+                    document.getElementById('setupContainer').style.display = 'none';
+                    this.setupWidget();
+                    this.startDataFetching();
+                } else {
+                    console.log('⚙️ Setup required');
+                }
+            }
+
+            bindEvents() {
+                document.getElementById('startBtn').addEventListener('click', () => {
+                    this.handleSetup();
+                });
+                
+                document.getElementById('testBtn').addEventListener('click', () => {
+                    this.runTest();
+                });
+            }
+
+            handleSetup() {
+                this.proxyUrl = document.getElementById('proxyUrl').value.trim();
+                this.accessToken = document.getElementById('accessToken').value.trim();
+                this.position = document.getElementById('position').value;
+                this.duration = parseInt(document.getElementById('duration').value) * 1000;
+
+                if (!this.proxyUrl || !this.accessToken) {
+                    alert('Пожалуйста, заполните все поля!');
+                    return;
+                }
+
+                const widgetUrl = this.generateWidgetUrl();
+                document.getElementById('widgetUrl').textContent = widgetUrl;
+                document.getElementById('urlResult').style.display = 'block';
+                
+                console.log('✅ Widget URL generated');
+            }
+
+            generateWidgetUrl() {
+                const baseUrl = window.location.href.split('?')[0];
+                const params = new URLSearchParams();
+                
+                params.set('proxy_url', this.proxyUrl);
+                params.set('access_token', this.accessToken);
+                params.set('position', this.position);
+                params.set('duration', Math.floor(this.duration / 1000));
+                
+                return baseUrl + '?' + params.toString();
+            }
+
+            setupWidget() {
+                const widget = document.querySelector('.widget-container');
+                const positions = {
+                    'center': { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
+                    'top-left': { top: '50px', left: '50px', transform: 'none' },
+                    'top-right': { top: '50px', right: '50px', left: 'auto', transform: 'none' },
+                    'bottom-left': { bottom: '50px', left: '50px', top: 'auto', transform: 'none' },
+                    'bottom-right': { bottom: '50px', right: '50px', top: 'auto', left: 'auto', transform: 'none' }
+                };
+
+                Object.assign(widget.style, positions[this.position]);
+            }
+
+            async startDataFetching() {
+                console.log('🔄 Starting data fetching...');
+                this.updateStatus('🔄 Загрузка данных...', '');
+                
+                await this.fetchDonations();
+                
+                // Проверяем новые донаты каждые 30 секунд
+                this.checkInterval = setInterval(() => {
+                    this.fetchDonations();
+                }, 30000);
+            }
+
+            async fetchDonations() {
+                try {
+                    console.log('📡 Fetching donations from proxy...');
+                    
+                    const response = await fetch(`${this.proxyUrl}/api/donations`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            access_token: this.accessToken
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Proxy error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('📦 Received data:', data);
+                    
+                    this.processItems(data.items || []);
+                    
+                } catch (error) {
+                    console.error('❌ Fetch error:', error);
+                    this.updateStatus('❌ Ошибка загрузки', 'error');
+                    
+                    // Показываем тестовые данные в случае ошибки
+                    this.processItems([
+                        { icon: '💰', text: 'Ошибка подключения' },
+                        { icon: '🔧', text: 'Проверьте прокси-сервер' }
+                    ]);
+                }
+            }
+
+            processItems(newItems) {
+                if (newItems.length === 0) {
+                    this.items = [{ icon: '⏳', text: 'Нет новых донатов' }];
+                } else {
+                    this.items = newItems;
+                }
+
+                console.log('📋 Processed items:', this.items.length);
+                this.updateStatus(`✅ Загружено: ${this.items.length} элементов`, 'connected');
+                
+                this.startRotation();
+            }
+
+            startRotation() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                }
+
+                if (this.items.length === 0) return;
+
+                // Показываем первый элемент
+                this.showItem(0);
+
+                // Запускаем ротацию если элементов больше одного
+                if (this.items.length > 1) {
+                    this.intervalId = setInterval(() => {
+                        this.currentIndex = (this.currentIndex + 1) % this.items.length;
+                        this.showItem(this.currentIndex);
+                    }, this.duration);
+                }
+            }
+
+            showItem(index) {
+                if (!this.items[index]) return;
+
+                const { icon, text } = this.items[index];
+                const itemElement = document.getElementById('currentItem');
+                const iconElement = itemElement.querySelector('.icon');
+                const textElement = itemElement.querySelector('.text');
+
+                console.log(`📺 Showing: ${text}`);
+
+                // Плавная смена контента
+                itemElement.style.opacity = '0';
+                
+                setTimeout(() => {
+                    iconElement.textContent = icon;
+                    textElement.textContent = text;
+                    itemElement.style.opacity = '1';
+                }, 250);
+            }
+
+            runTest() {
+                console.log('🧪 Running test...');
+                this.startTestMode();
+            }
+
+            startTestMode() {
+                this.updateStatus('🧪 Тестовый режим', 'connected');
+                
+                const testItems = [
+                    { icon: '💰', text: 'Тестер1 — 100 RUB' },
+                    { icon: '💰', text: 'SuperDonator — 500 RUB' },
+                    { icon: '🎁', text: 'GiftMaster — 3 шт' },
+                    { icon: '👤', text: 'Subscriber — подписан 12 мес.' },
+                    { icon: '💰', text: 'BigDonor — 1000 USD' }
+                ];
+
+                this.processItems(testItems);
+            }
+
+            updateStatus(text, className = '') {
+                const status = document.getElementById('status');
+                status.textContent = text;
+                status.className = `status ${className}`;
+            }
+
+            stop() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+                if (this.checkInterval) {
+                    clearInterval(this.checkInterval);
+                    this.checkInterval = null;
+                }
+            }
+        }
+
+        function copyUrl() {
+            const urlText = document.getElementById('widgetUrl').textContent;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(urlText).then(() => {
+                    const btn = document.querySelector('.copy-btn');
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅ Скопировано!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        }
+
+        // Инициализация
+        const widget = new DonationWidget();
+
+        window.addEventListener('beforeunload', () => {
+            widget.stop();
+        });
+    </script>
+
+    <!-- Proxy Server Code (save as proxy-server.js) -->
+    <script type="text/plain" id="proxy-server-code">
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.post('/api/donations', async (req, res) => {
+    try {
+        const { access_token } = req.body;
+        
+        console.log('📡 Fetching donations from DonationAlerts...');
+        
+        const response = await axios.get('https://www.donationalerts.com/api/v1/alerts/donations', {
+            headers: {
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        
+        // Обрабатываем данные как в вашем коде
+        const donors = Object.values(
+            response.data.data
+                .filter(d => new Date(d.created_at).getTime() >= weekAgo)
+                .reduce((acc, { username, amount, currency }) => {
+                    if (!acc[username]) {
+                        acc[username] = { 
+                            icon: '💰', 
+                            text: `${username} — ${amount} ${currency}`, 
+                            total: parseFloat(amount) 
+                        };
+                    } else {
+                        acc[username].total += parseFloat(amount);
+                        acc[username].text = `${username} — ${acc[username].total} ${currency}`;
+                    }
+                    return acc;
+                }, {})
+        ).sort((a, b) => b.total - a.total);
+
+        console.log(`✅ Found ${donors.length} donors this week`);
+        
+        res.json({ items: donors });
+        
+    } catch (error) {
+        console.error('❌ Error:', error.response?.data || error.message);
+        res.status(500).json({ error: error.message, items: [] });
+    }
+});
+
+const PORT = 3001;
+app.listen(PORT, () => {
+    console.log(`🚀 Proxy server running on http://localhost:${PORT}`);
+});
+    </script>
+</body>
+</html>
