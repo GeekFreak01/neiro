@@ -251,16 +251,21 @@
             isDisplaying = true;
             const donation = donations[currentIndex];
             const currencySymbol = currencySymbols[donation.currency] || donation.currency;
-            
+
             const donationElement = document.createElement('div');
             donationElement.className = 'donation-container';
-            
-            let html = `
-                <div class="money-icon">💰</div>
-                <div class="donation-info">
-                    <div class="donor-name">${escapeHtml(donation.username)}</div>
-                    <div class="donation-amount">${donation.amount} ${currencySymbol}</div>
+
+            donationElement.innerHTML = `
+              <div class="money-icon">💰</div>
+              <div class="donation-info">
+              <div class="donor-name">${escapeHtml(donation.username)}</div>
+              <div class="donation-amount">${donation.total.toFixed(2)} ${currencySymbol}</div>
+            </div>
             `;
+
+const container = document.getElementById('donationDisplay');
+container.innerHTML = '';
+container.appendChild(donationElement);
             
             // Добавляем сообщение, если оно есть
             //if (donation.message && donation.message.trim()) {
