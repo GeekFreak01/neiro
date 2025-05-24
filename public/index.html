@@ -36,7 +36,7 @@
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 30px;
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -147,6 +147,9 @@
 
         .text {
             color: #000;
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .status {
@@ -227,6 +230,15 @@
             color: rgba(255, 255, 255, 0.8);
             font-size: 14px;
             line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .info-block code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #4CAF50;
         }
 
         @keyframes fadeInOut {
@@ -237,29 +249,91 @@
         .animate-fade-in-out {
             animation: fadeInOut 4s ease infinite;
         }
+
+        .method-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .method-tab {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .method-tab.active {
+            background: rgba(76, 175, 80, 0.3);
+            color: white;
+        }
+
+        .method-content {
+            display: none;
+        }
+
+        .method-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div id="setupContainer" class="setup-container">
         <div class="setup-form">
-            <h2>💰 Виджет донатов DonationAlerts</h2>
+            <h2>💰 Виджет донатов для Vercel</h2>
             
-            <div class="info-block">
-                <h4>📋 Требуется прокси-сервер</h4>
-                <p>DonationAlerts API блокирует запросы из браузера. Нужен простой прокси-сервер или используйте готовое решение:</p>
-                <p><strong>1.</strong> Создайте файл proxy-server.js<br>
-                <strong>2.</strong> Запустите: node proxy-server.js<br>
-                <strong>3.</strong> Укажите URL прокси ниже</p>
+            <div class="method-tabs">
+                <div class="method-tab active" data-method="vercel">Vercel API</div>
+                <div class="method-tab" data-method="external">Внешний API</div>
+                <div class="method-tab" data-method="test">Тест</div>
             </div>
-            
-            <div class="form-group">
-                <label for="proxyUrl">URL прокси-сервера:</label>
-                <input type="text" id="proxyUrl" value="http://localhost:3001" placeholder="http://localhost:3001">
+
+            <!-- Vercel API метод -->
+            <div class="method-content active" id="vercelMethod">
+                <div class="info-block">
+                    <h4>🚀 Развертывание на Vercel</h4>
+                    <p><strong>1.</strong> Создайте файл <code>/api/donations.js</code> в вашем проекте</p>
+                    <p><strong>2.</strong> Добавьте переменные окружения в Vercel:</p>
+                    <p><code>DA_ACCESS_TOKEN</code> - ваш токен DonationAlerts</p>
+                    <p><strong>3.</strong> Разверните проект на Vercel</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="vercelUrl">URL вашего Vercel проекта:</label>
+                    <input type="text" id="vercelUrl" placeholder="https://your-project.vercel.app" value="">
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="accessToken">DonationAlerts Access Token:</label>
-                <input type="text" id="accessToken" placeholder="Введите ваш access token">
+
+            <!-- Внешний API метод -->
+            <div class="method-content" id="externalMethod">
+                <div class="info-block">
+                    <h4>🔗 Внешний API сервер</h4>
+                    <p>Если у вас уже есть API сервер или прокси</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="apiUrl">URL API сервера:</label>
+                    <input type="text" id="apiUrl" placeholder="https://your-api.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="accessToken">Access Token:</label>
+                    <input type="text" id="accessToken" placeholder="Ваш DonationAlerts токен">
+                </div>
+            </div>
+
+            <!-- Тест метод -->
+            <div class="method-content" id="testMethod">
+                <div class="info-block">
+                    <h4>🧪 Тестовый режим</h4>
+                    <p>Показывает тестовые данные для проверки анимаций</p>
+                </div>
             </div>
             
             <div class="form-group">
@@ -306,7 +380,9 @@
     <script>
         class DonationWidget {
             constructor() {
-                this.proxyUrl = 'http://localhost:3001';
+                this.method = 'vercel';
+                this.vercelUrl = '';
+                this.apiUrl = '';
                 this.accessToken = '';
                 this.position = 'center';
                 this.duration = 4000;
@@ -323,17 +399,26 @@
             }
 
             initFromUrl() {
-                console.log('🔗 Checking URL parameters...');
+                console.log('🔗 Initializing from URL...');
                 
                 const urlParams = new URLSearchParams(window.location.search);
-                const proxyUrl = urlParams.get('proxy_url');
+                const method = urlParams.get('method') || 'vercel';
+                const vercelUrl = urlParams.get('vercel_url');
+                const apiUrl = urlParams.get('api_url');
                 const accessToken = urlParams.get('access_token');
                 const position = urlParams.get('position') || 'center';
                 const duration = urlParams.get('duration') || '4';
                 const isTest = urlParams.get('test') === 'true';
 
+                // Автоопределение Vercel URL
+                if (!vercelUrl && window.location.hostname.includes('vercel.app')) {
+                    this.vercelUrl = window.location.origin;
+                    console.log('🎯 Auto-detected Vercel URL:', this.vercelUrl);
+                }
+
                 if (isTest) {
                     console.log('🧪 Test mode activated');
+                    this.method = 'test';
                     this.isSetup = true;
                     this.position = position;
                     this.duration = parseInt(duration) * 1000;
@@ -344,24 +429,40 @@
                     return;
                 }
 
-                if (proxyUrl && accessToken) {
-                    this.proxyUrl = proxyUrl;
-                    this.accessToken = accessToken;
+                if ((method === 'vercel' && (vercelUrl || this.vercelUrl)) || 
+                    (method === 'external' && apiUrl && accessToken)) {
+                    
+                    this.method = method;
+                    this.vercelUrl = vercelUrl || this.vercelUrl;
+                    this.apiUrl = apiUrl || '';
+                    this.accessToken = accessToken || '';
                     this.position = position;
                     this.duration = parseInt(duration) * 1000;
                     this.isSetup = true;
                     
-                    console.log('✅ Widget configured via URL');
+                    console.log('✅ Widget configured:', this.method);
                     
                     document.getElementById('setupContainer').style.display = 'none';
                     this.setupWidget();
                     this.startDataFetching();
                 } else {
                     console.log('⚙️ Setup required');
+                    // Заполняем поля если на Vercel
+                    if (window.location.hostname.includes('vercel.app')) {
+                        document.getElementById('vercelUrl').value = window.location.origin;
+                    }
                 }
             }
 
             bindEvents() {
+                // Переключение методов
+                document.querySelectorAll('.method-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const method = e.target.dataset.method;
+                        this.switchMethod(method);
+                    });
+                });
+
                 document.getElementById('startBtn').addEventListener('click', () => {
                     this.handleSetup();
                 });
@@ -371,15 +472,41 @@
                 });
             }
 
+            switchMethod(method) {
+                // Убираем активные классы
+                document.querySelectorAll('.method-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.method-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Добавляем активные классы
+                document.querySelector(`[data-method="${method}"]`).classList.add('active');
+                document.getElementById(`${method}Method`).classList.add('active');
+
+                this.method = method;
+            }
+
             handleSetup() {
-                this.proxyUrl = document.getElementById('proxyUrl').value.trim();
-                this.accessToken = document.getElementById('accessToken').value.trim();
                 this.position = document.getElementById('position').value;
                 this.duration = parseInt(document.getElementById('duration').value) * 1000;
 
-                if (!this.proxyUrl || !this.accessToken) {
-                    alert('Пожалуйста, заполните все поля!');
-                    return;
+                if (this.method === 'vercel') {
+                    this.vercelUrl = document.getElementById('vercelUrl').value.trim();
+                    
+                    if (!this.vercelUrl) {
+                        alert('Введите URL вашего Vercel проекта!');
+                        return;
+                    }
+                } else if (this.method === 'external') {
+                    this.apiUrl = document.getElementById('apiUrl').value.trim();
+                    this.accessToken = document.getElementById('accessToken').value.trim();
+                    
+                    if (!this.apiUrl || !this.accessToken) {
+                        alert('Введите URL API и токен!');
+                        return;
+                    }
                 }
 
                 const widgetUrl = this.generateWidgetUrl();
@@ -393,10 +520,16 @@
                 const baseUrl = window.location.href.split('?')[0];
                 const params = new URLSearchParams();
                 
-                params.set('proxy_url', this.proxyUrl);
-                params.set('access_token', this.accessToken);
+                params.set('method', this.method);
                 params.set('position', this.position);
                 params.set('duration', Math.floor(this.duration / 1000));
+                
+                if (this.method === 'vercel') {
+                    params.set('vercel_url', this.vercelUrl);
+                } else if (this.method === 'external') {
+                    params.set('api_url', this.apiUrl);
+                    params.set('access_token', this.accessToken);
+                }
                 
                 return baseUrl + '?' + params.toString();
             }
@@ -428,20 +561,25 @@
 
             async fetchDonations() {
                 try {
-                    console.log('📡 Fetching donations from proxy...');
+                    let url, options = {};
                     
-                    const response = await fetch(`${this.proxyUrl}/api/donations`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            access_token: this.accessToken
-                        })
-                    });
+                    if (this.method === 'vercel') {
+                        url = `${this.vercelUrl}/api/donations`;
+                        console.log('📡 Fetching from Vercel API:', url);
+                    } else if (this.method === 'external') {
+                        url = `${this.apiUrl}/api/donations`;
+                        options = {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ access_token: this.accessToken })
+                        };
+                        console.log('📡 Fetching from external API:', url);
+                    }
+
+                    const response = await fetch(url, options);
 
                     if (!response.ok) {
-                        throw new Error(`Proxy error: ${response.status}`);
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
 
                     const data = await response.json();
@@ -451,12 +589,12 @@
                     
                 } catch (error) {
                     console.error('❌ Fetch error:', error);
-                    this.updateStatus('❌ Ошибка загрузки', 'error');
+                    this.updateStatus(`❌ Ошибка: ${error.message}`, 'error');
                     
-                    // Показываем тестовые данные в случае ошибки
+                    // Показываем сообщение об ошибке
                     this.processItems([
-                        { icon: '💰', text: 'Ошибка подключения' },
-                        { icon: '🔧', text: 'Проверьте прокси-сервер' }
+                        { icon: '❌', text: 'Ошибка подключения к API' },
+                        { icon: '🔧', text: 'Проверьте настройки сервера' }
                     ]);
                 }
             }
@@ -482,6 +620,7 @@
                 if (this.items.length === 0) return;
 
                 // Показываем первый элемент
+                this.currentIndex = 0;
                 this.showItem(0);
 
                 // Запускаем ротацию если элементов больше одного
@@ -524,9 +663,10 @@
                 const testItems = [
                     { icon: '💰', text: 'Тестер1 — 100 RUB' },
                     { icon: '💰', text: 'SuperDonator — 500 RUB' },
-                    { icon: '🎁', text: 'GiftMaster — 3 шт' },
+                    { icon: '🎁', text: 'GiftMaster — 3 подарка' },
                     { icon: '👤', text: 'Subscriber — подписан 12 мес.' },
-                    { icon: '💰', text: 'BigDonor — 1000 USD' }
+                    { icon: '💰', text: 'BigDonor — 1000 USD' },
+                    { icon: '💰', text: 'Благотворитель — 250 EUR' }
                 ];
 
                 this.processItems(testItems);
@@ -570,66 +710,6 @@
         window.addEventListener('beforeunload', () => {
             widget.stop();
         });
-    </script>
-
-    <!-- Proxy Server Code (save as proxy-server.js) -->
-    <script type="text/plain" id="proxy-server-code">
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.post('/api/donations', async (req, res) => {
-    try {
-        const { access_token } = req.body;
-        
-        console.log('📡 Fetching donations from DonationAlerts...');
-        
-        const response = await axios.get('https://www.donationalerts.com/api/v1/alerts/donations', {
-            headers: {
-                'Authorization': `Bearer ${access_token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        
-        // Обрабатываем данные как в вашем коде
-        const donors = Object.values(
-            response.data.data
-                .filter(d => new Date(d.created_at).getTime() >= weekAgo)
-                .reduce((acc, { username, amount, currency }) => {
-                    if (!acc[username]) {
-                        acc[username] = { 
-                            icon: '💰', 
-                            text: `${username} — ${amount} ${currency}`, 
-                            total: parseFloat(amount) 
-                        };
-                    } else {
-                        acc[username].total += parseFloat(amount);
-                        acc[username].text = `${username} — ${acc[username].total} ${currency}`;
-                    }
-                    return acc;
-                }, {})
-        ).sort((a, b) => b.total - a.total);
-
-        console.log(`✅ Found ${donors.length} donors this week`);
-        
-        res.json({ items: donors });
-        
-    } catch (error) {
-        console.error('❌ Error:', error.response?.data || error.message);
-        res.status(500).json({ error: error.message, items: [] });
-    }
-});
-
-const PORT = 3001;
-app.listen(PORT, () => {
-    console.log(`🚀 Proxy server running on http://localhost:${PORT}`);
-});
     </script>
 </body>
 </html>
