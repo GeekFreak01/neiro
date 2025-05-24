@@ -218,22 +218,6 @@
             }
         }
 
-                
-                updateStatus(true);
-            } catch (error) {
-                console.error('Error fetching donations:', error);
-                updateStatus(false);
-                
-                // Повторная попытка при ошибке
-                if (retryCount < CONFIG.maxRetries) {
-                    retryCount++;
-                    showError(`Ошибка получения данных. Попытка ${retryCount} из ${CONFIG.maxRetries}`);
-                    setTimeout(fetchDonations, CONFIG.retryDelay);
-                } else {
-                    showError('Не удалось получить данные о донатах. Проверьте настройки.');
-                }
-            }
-        }
 
         // Функция отображения следующего доната
         function displayNextDonation() {
