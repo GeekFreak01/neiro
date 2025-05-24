@@ -298,15 +298,23 @@
             <div class="method-content active" id="vercelMethod">
                 <div class="info-block">
                     <h4>🚀 Развертывание на Vercel</h4>
-                    <p><strong>1.</strong> Создайте файл <code>/api/donations.js</code> в вашем проекте</p>
-                    <p><strong>2.</strong> Добавьте переменные окружения в Vercel:</p>
-                    <p><code>DA_ACCESS_TOKEN</code> - ваш токен DonationAlerts</p>
-                    <p><strong>3.</strong> Разверните проект на Vercel</p>
+                    <p><strong>1.</strong> Создайте файл <code>/api/donations.js</code> в корне проекта</p>
+                    <p><strong>2.</strong> В Vercel Dashboard → Settings → Environment Variables добавьте:</p>
+                    <p><code>DA_ACCESS_TOKEN</code> = ваш токен DonationAlerts</p>
+                    <p><strong>3.</strong> Выполните redeploy проекта после добавления переменной</p>
+                    <p><strong>4.</strong> Проверьте логи: <code>vercel logs your-project</code></p>
                 </div>
                 
                 <div class="form-group">
                     <label for="vercelUrl">URL вашего Vercel проекта:</label>
                     <input type="text" id="vercelUrl" placeholder="https://your-project.vercel.app" value="">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="debugMode" style="width: auto; margin-right: 8px;">
+                        Режим отладки (показать подробные логи)
+                    </label>
                 </div>
             </div>
 
@@ -577,13 +585,24 @@
                     }
 
                     const response = await fetch(url, options);
+                    
+                    console.log('🔍 Response status:', response.status);
+                    console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
 
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        const errorText = await response.text();
+                        console.error('❌ HTTP Error:', response.status, errorText);
+                        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
                     }
 
                     const data = await response.json();
                     console.log('📦 Received data:', data);
+                    
+                    // Проверяем есть ли ошибка в ответе
+                    if (data.error) {
+                        console.error('❌ API Error:', data.error);
+                        this.updateStatus(`❌ ${data.error}`, 'error');
+                    }
                     
                     this.processItems(data.items || []);
                     
@@ -591,11 +610,23 @@
                     console.error('❌ Fetch error:', error);
                     this.updateStatus(`❌ Ошибка: ${error.message}`, 'error');
                     
-                    // Показываем сообщение об ошибке
-                    this.processItems([
-                        { icon: '❌', text: 'Ошибка подключения к API' },
-                        { icon: '🔧', text: 'Проверьте настройки сервера' }
-                    ]);
+                    // Показываем подробную информацию об ошибке
+                    const errorItems = [
+                        { icon: '❌', text: `Ошибка: ${error.message}` }
+                    ];
+                    
+                    // Добавляем специфичные советы в зависимости от ошибки
+                    if (error.message.includes('500')) {
+                        errorItems.push({ icon: '🔧', text: 'Проверьте API endpoint и токен' });
+                        errorItems.push({ icon: '📋', text: 'Откройте Console для деталей' });
+                    } else if (error.message.includes('404')) {
+                        errorItems.push({ icon: '📁', text: 'API endpoint не найден' });
+                        errorItems.push({ icon: '🔗', text: 'Создайте /api/donations.js' });
+                    } else if (error.message.includes('CORS')) {
+                        errorItems.push({ icon: '🌐', text: 'Проблема с CORS' });
+                    }
+                    
+                    this.processItems(errorItems);
                 }
             }
 
