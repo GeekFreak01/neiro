@@ -3,6 +3,9 @@
     "api/donations.js": {
       "maxDuration": 10
     },
+    "api/donations-simple.js": {
+      "maxDuration": 10
+    },
     "api/token-manager.js": {
       "maxDuration": 10
     }
@@ -12,10 +15,5 @@
       "source": "/",
       "destination": "/public/index.html"
     }
-  ],
-  "env": {
-    "DONATION_ALERTS_CLIENT_ID": "@donation_alerts_client_id",
-    "DONATION_ALERTS_CLIENT_SECRET": "@donation_alerts_client_secret", 
-    "DONATION_ALERTS_REFRESH_TOKEN": "@donation_alerts_refresh_token"
-  }
+  ]
 }
