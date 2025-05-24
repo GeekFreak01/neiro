@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   }
 
   // Получаем токен из переменной окружения
-  const accessToken = process.env.DONATION_ALERTS_ACCESS_TOKEN;
+  const accessToken = process.env.DONATIONALERTS_ACCESS_TOKEN;
   
   if (!accessToken) {
     res.status(500).json({ error: 'Access token not configured' });
