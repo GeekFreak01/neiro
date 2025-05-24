@@ -4,8 +4,8 @@
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   
-  const hasToken = !!process.env.DONATION_ALERTS_ACCESS_TOKEN;
-  const tokenLength = process.env.DONATION_ALERTS_ACCESS_TOKEN ? 
+  const hasToken = !!process.env.DONATIONALERTS_ACCESS_TOKEN;
+  const tokenLength = process.env.DONATIONALERTS_ACCESS_TOKEN ? 
     process.env.DONATION_ALERTS_ACCESS_TOKEN.length : 0;
   
   res.status(200).json({
@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
       hasAccessToken: hasToken,
       tokenLength: tokenLength,
       tokenPreview: hasToken ? 
-        `${process.env.DONATION_ALERTS_ACCESS_TOKEN.substring(0, 10)}...` : 
+        `${process.env.DONATIONALERTS_ACCESS_TOKEN.substring(0, 10)}...` : 
         'not set'
     },
     timestamp: new Date().toISOString()
