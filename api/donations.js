@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const tokenManager = require('./token-manager');
 
 module.exports = async (req, res) => {
   // Настройка CORS
@@ -11,20 +11,11 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Получаем токен из переменной окружения
-  const bearerToken = process.env.DONATION_ALERTS_TOKEN;
-  
-  if (!bearerToken) {
-    res.status(500).json({ error: 'Token not configured' });
-    return;
-  }
-
   try {
-    const response = await fetch('https://www.donationalerts.com/api/v1/alerts/donations', {
-      headers: {
-        'Authorization': `Bearer ${bearerToken}`
-      }
-    });
+    // Используем tokenManager для выполнения запроса с автоматическим обновлением токена
+    const response = await tokenManager.authenticatedFetch(
+      'https://www.donationalerts.com/api/v1/alerts/donations'
+    );
 
     if (!response.ok) {
       throw new Error(`API responded with status ${response.status}`);
