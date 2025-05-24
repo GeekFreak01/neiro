@@ -1,4 +1,79 @@
-<!DOCTYPE html>
+async fetchDonations() {
+                try {
+                    let url, options = {};
+                    
+                    if (this.method === 'vercel') {
+                        url = `${this.vercelUrl}/api/donations`;
+                        options = {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ access_token: this.vercelToken })
+                        };
+                        console.log('📡 Fetching from Vercel API:', url);
+                    } else if (this.method === 'external') {
+                        url = `${this.apiUrl}/api/donations`;
+                        options = {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ access_token: this.accessToken })
+                        };
+                        console.log('📡 Fetching from external API:', url);
+                    }
+
+                    const response = await fetch(url, options);
+                    
+                    console.log('🔍 Response status:', response.status);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('❌ HTTP Error:', response.status, errorText);
+                        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('📦 Received data:', data);
+                    
+                    // Проверяем есть ли ошибка в ответе
+                    if (data.error) {
+                        console.error('❌ API Error:', data.error);
+                        this.updateStatus(`❌ ${data.error}`, 'error');
+                    } else {
+                        // Показываем дополнительную информацию если есть
+                        if (data.total) {
+                            this.updateStatus(`✅ Загружено: ${data.items.length} из ${data.total} донатеров`, 'connected');
+                        } else {
+                            this.updateStatus(`✅ Загружено: ${data.items.length} элементов`, 'connected');
+                        }
+                    }
+                    
+                    this.processItems(data.items || []);
+                    
+                } catch (error) {
+                    console.error('❌ Fetch error:', error);
+                    this.updateStatus(`❌ Ошибка: ${error.message}`, 'error');
+                    
+                    // Показываем подробную информацию об ошибке
+                    const errorItems = [
+                        { icon: '❌', text: `Ошибка: ${error.message}` }
+                    ];
+                    
+                    // Добавляем специфичные советы в зависимости от ошибки
+                    if (error.message.includes('500')) {
+                        errorItems.push({ icon: '🔧', text: 'Проверьте API endpoint и токен' });
+                        errorItems.push({ icon: '📋', text: 'Откройте Console для деталей' });
+                    } else if (error.message.includes('404')) {
+                        errorItems.push({ icon: '📁', text: 'API endpoint не найден' });
+                        errorItems.push({ icon: '🔗', text: 'Создайте /api/donations.js' });
+                    } else if (error.message.includes('401')) {
+                        errorItems.push({ icon: '🔑', text: 'Неверный токен доступа' });
+                        errorItems.push({ icon: '🔄', text: 'Обновите токен в DonationAlerts' });
+                    } else if (error.message.includes('CORS')) {
+                        errorItems.push({ icon: '🌐', text: 'Проблема с CORS' });
+                    }
+                    
+                    this.processItems(errorItems);
+                }
+            }<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -297,12 +372,11 @@
             <!-- Vercel API метод -->
             <div class="method-content active" id="vercelMethod">
                 <div class="info-block">
-                    <h4>🚀 Развертывание на Vercel</h4>
-                    <p><strong>1.</strong> Создайте файл <code>/api/donations.js</code> в корне проекта</p>
-                    <p><strong>2.</strong> В Vercel Dashboard → Settings → Environment Variables добавьте:</p>
-                    <p><code>DA_ACCESS_TOKEN</code> = ваш токен DonationAlerts</p>
-                    <p><strong>3.</strong> Выполните redeploy проекта после добавления переменной</p>
-                    <p><strong>4.</strong> Проверьте логи: <code>vercel logs your-project</code></p>
+                    <h4>🚀 Простое развертывание на Vercel</h4>
+                    <p><strong>1.</strong> Создайте файл <code>/api/donations.js</code> с кодом API</p>
+                    <p><strong>2.</strong> Разверните проект на Vercel</p>
+                    <p><strong>3.</strong> Введите токен ниже - он будет передаваться напрямую в API</p>
+                    <p>🔒 <strong>Токен не сохраняется</strong> - безопасно для публичного использования</p>
                 </div>
                 
                 <div class="form-group">
@@ -311,10 +385,11 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="debugMode" style="width: auto; margin-right: 8px;">
-                        Режим отладки (показать подробные логи)
-                    </label>
+                    <label for="vercelToken">DonationAlerts Access Token:</label>
+                    <input type="password" id="vercelToken" placeholder="Ваш токен DonationAlerts">
+                    <small style="color: rgba(255,255,255,0.6); font-size: 12px;">
+                        Токен передается только в API запросе и не сохраняется
+                    </small>
                 </div>
             </div>
 
@@ -390,6 +465,7 @@
             constructor() {
                 this.method = 'vercel';
                 this.vercelUrl = '';
+                this.vercelToken = '';
                 this.apiUrl = '';
                 this.accessToken = '';
                 this.position = 'center';
@@ -412,6 +488,7 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const method = urlParams.get('method') || 'vercel';
                 const vercelUrl = urlParams.get('vercel_url');
+                const vercelToken = urlParams.get('vercel_token');
                 const apiUrl = urlParams.get('api_url');
                 const accessToken = urlParams.get('access_token');
                 const position = urlParams.get('position') || 'center';
@@ -437,11 +514,12 @@
                     return;
                 }
 
-                if ((method === 'vercel' && (vercelUrl || this.vercelUrl)) || 
+                if ((method === 'vercel' && (vercelUrl || this.vercelUrl) && vercelToken) || 
                     (method === 'external' && apiUrl && accessToken)) {
                     
                     this.method = method;
                     this.vercelUrl = vercelUrl || this.vercelUrl;
+                    this.vercelToken = vercelToken || '';
                     this.apiUrl = apiUrl || '';
                     this.accessToken = accessToken || '';
                     this.position = position;
@@ -502,9 +580,15 @@
 
                 if (this.method === 'vercel') {
                     this.vercelUrl = document.getElementById('vercelUrl').value.trim();
+                    this.vercelToken = document.getElementById('vercelToken').value.trim();
                     
                     if (!this.vercelUrl) {
                         alert('Введите URL вашего Vercel проекта!');
+                        return;
+                    }
+                    
+                    if (!this.vercelToken) {
+                        alert('Введите DonationAlerts токен!');
                         return;
                     }
                 } else if (this.method === 'external') {
@@ -534,6 +618,7 @@
                 
                 if (this.method === 'vercel') {
                     params.set('vercel_url', this.vercelUrl);
+                    params.set('vercel_token', this.vercelToken);
                 } else if (this.method === 'external') {
                     params.set('api_url', this.apiUrl);
                     params.set('access_token', this.accessToken);
