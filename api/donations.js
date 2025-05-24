@@ -1,30 +1,35 @@
-const tokenManager = require('./token-manager');
+const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
-  // Настройка CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const accessToken = process.env.DONATIONALERTS_ACCESS_TOKEN;
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  if (!accessToken) {
+    return res.status(500).json({ error: 'Access token is not defined in environment variables' });
   }
 
   try {
-    // Используем tokenManager для выполнения запроса с автоматическим обновлением токена
-    const response = await tokenManager.authenticatedFetch(
-      'https://www.donationalerts.com/api/v1/alerts/donations'
-    );
+    const response = await fetch('https://www.donationalerts.com/api/v1/alerts/donations', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    const text = await response.text();
 
     if (!response.ok) {
-      throw new Error(`API responded with status ${response.status}`);
+      return res.status(response.status).json({
+        error: 'DonationAlerts API request failed',
+        details: text
+      });
     }
 
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (error) {
-    console.error('Error fetching donations:', error);
-    res.status(500).json({ error: 'Failed to fetch donations' });
+    // Если ответ валиден — распарси JSON
+    const data = JSON.parse(text);
+    return res.status(200).json(data);
+  } catch (err) {
+    return res.status(500).json({
+      error: 'Unexpected server error',
+      message: err.message
+    });
   }
 };
