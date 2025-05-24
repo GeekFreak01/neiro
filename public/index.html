@@ -20,8 +20,8 @@
         .donation-container {
           position: fixed;
           bottom: 20px;
-          left: 50%;
-          transform: translateX(-50%);
+          left: 30px; /* ✅ Сдвиг от левого края */
+          transform: none; /* ❌ Убираем центрирование */
           background-color: rgba(0, 0, 0, 0.9);
           color: white;
           padding: 15px 30px;
@@ -31,7 +31,7 @@
           min-width: 300px;
           max-width: 600px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-          opacity: 1; /* Фон всегда виден */
+          opacity: 1;
         }
 
         .donation-content {
