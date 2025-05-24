@@ -1,14 +1,8 @@
 const fetch = require('node-fetch');
 
-// нормализация имени: убираем пробелы, символы, регистр
-function normalize(name) {
-  return name.trim().toLowerCase().replace(/[^a-zа-яё0-9]/gi, '');
-}
-
-// получить дату двухнедельной давности от текущего понедельника
 function getTwoWeeksAgoMonday() {
   const now = new Date();
-  const day = now.getDay(); // 0 = Sunday
+  const day = now.getDay();
   const diffToMonday = (day === 0 ? -6 : 1 - day);
   const thisMonday = new Date(now);
   thisMonday.setDate(now.getDate() + diffToMonday);
@@ -40,7 +34,7 @@ module.exports = async (req, res) => {
       const date = new Date(donation.created_at);
       if (date < since || donation.is_shown !== 1) continue;
 
-      const key = normalize(donation.username);
+      const key = donation.username; // <== строгое сравнение
 
       if (!aggregated[key]) {
         aggregated[key] = {
