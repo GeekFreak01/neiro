@@ -263,26 +263,26 @@
             </div>
         `;
 
-    const container = document.getElementById('donationDisplay');
-    container.innerHTML = '';
-    container.appendChild(donationElement);
+        const container = document.getElementById('donationDisplay');
+        container.innerHTML = '';
+        container.appendChild(donationElement);
 
-    // Переход к следующему донату
-    setTimeout(() => {
-        currentIndex = (currentIndex + 1) % donations.length;
+        // Переход к следующему донату
+        setTimeout(() => {
+            currentIndex = (currentIndex + 1) % donations.length;
 
-        if (currentIndex === 0) {
-            isDisplaying = false;
-            setTimeout(() => {
-                if (donations.length > 0 && !isDisplaying) {
-                    displayNextDonation();
+            if (currentIndex === 0) {
+                isDisplaying = false;
+                setTimeout(() => {
+                    if (donations.length > 0 && !isDisplaying) {
+                        displayNextDonation();
+                    }
+                }, 2000);
+            } else {
+                displayNextDonation();
                 }
-            }, 2000);
-        } else {
-            displayNextDonation();
+            }, CONFIG.displayDuration);
         }
-    }, CONFIG.displayDuration);
-}
 
             // Добавляем сообщение, если оно есть
             //if (donation.message && donation.message.trim()) {
